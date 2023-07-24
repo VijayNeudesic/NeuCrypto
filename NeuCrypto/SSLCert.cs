@@ -26,7 +26,7 @@ namespace NeuCrypto
 
         public X509Certificate2 GetCertFromMyStore(string szSubjectName)
         {
-            X509Certificate2 certificate = null;
+            X509Certificate2 certificate = null; 
             try
             {
                 // Open the Current User's Personal (My) certificate store
