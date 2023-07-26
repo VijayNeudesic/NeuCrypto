@@ -1,25 +1,52 @@
 ﻿
 
 // See https://aka.ms/new-console-template for more information
-using System.Security.Cryptography.X509Certificates;
 using NeuCrypto;
 
 Console.WriteLine("Hello, World!");
 
-CryptoProcess cryptoProcess = new CryptoProcess("DOPCrypto");
+CryptoProcess cryptoProcess = new CryptoProcess();
+cryptoProcess.InitRSA("DOPCrypto");
 
+//stress testing the encryption/decryption process
 DateTime start = DateTime.Now;  
-for(int i = 0; i < 1000; i++)
+for(int i = 0; i < 10000; i++)
 {
-    // Replace with the text you want to encrypt
-    string originalText = $"Hello{i}, this is some sensitive information.";
+    string originalText = $"Hello{i}, this is some{i + 1} sensitive information{i + 2}.";
 
     // Encrypt the text
-    byte[] encryptedData = cryptoProcess.RSAEncryptText(originalText);
+    string encryptedData = cryptoProcess.EncryptTextRSA(originalText);
 
     // Decrypt the text
-    string decryptedText = cryptoProcess.RSADecryptText(encryptedData);
+    string decryptedTxt = cryptoProcess.DecryptTextRSA(encryptedData);
 }
 
 TimeSpan timeSpan = DateTime.Now - start;
-Console.WriteLine($"Press any key to exit...{timeSpan.TotalSeconds} seconds.");
+
+Console.WriteLine($"Press any key to exit RSA...{timeSpan.TotalSeconds} seconds.");
+
+
+//stress testing the encryption/decryption process
+start = DateTime.Now;
+
+string key = "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF"; // 64 characters (256 bits)
+string iv = "0123456789ABCDEF0123456789ABCDEF"; // 32 characters (128 bits)
+
+cryptoProcess.InitAES(key, iv); 
+
+for(int i = 0; i < 10000; i++)
+{
+    string originalText = $"Hello{i}, this is some{i + 1} sensitive information{i + 2}.";
+
+    // Encrypt the text
+    string encryptedText = cryptoProcess.EncryptTextAES(originalText);
+
+    // Decrypt the text
+    string decryptedText = cryptoProcess.DecryptTextAES(encryptedText);
+}
+
+
+timeSpan = DateTime.Now - start;
+
+Console.WriteLine($"Press any key to exit AES...{timeSpan.TotalSeconds} seconds.");
+

@@ -1,85 +1,61 @@
 ﻿using System;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Security.Permissions;
 using System.Text;
 
 namespace NeuCrypto
 {
+    [ComVisible(true)]
     public class CryptoProcess
     {
         public string LastError { get; set; }
-        private SSLCert sslCert = null;
-        private RSA rsapublicKey = null;
-        private RSA rsaprivateKey = null;
+        private RSAEncType rsaEncType = null;
+        private AesEncType aesEncType = null;
+
         public CryptoProcess()
         {
-            LastError = "";
-            sslCert = new SSLCert();    
         }
 
-        public CryptoProcess(string szCertSubjectName)
+        [ComVisible(true)]
+        public void InitRSA(string szCertSubjName = "")
         {
             LastError = "";
-            sslCert = new SSLCert(szCertSubjectName);
-            GenerateRSAKeys();
+            rsaEncType = new RSAEncType();
+            rsaEncType.Init(szCertSubjName);
         }
 
-        private void GenerateRSAKeys()
+        public void InitAES(string key, string IV)
         {
-            if (rsapublicKey == null)
-            {
-                rsapublicKey = sslCert.x509cert.GetRSAPublicKey();
-            }
-            if (rsaprivateKey == null)
-            {
-                rsaprivateKey = sslCert.x509cert.GetRSAPrivateKey();
-            }
-        }
-        public byte[] RSAEncryptText(string plainText)
-        {
-            return RSAEncryptText(plainText, rsapublicKey);
+            LastError = "";
+            aesEncType = new AesEncType();
+            aesEncType.Init(key, IV);
         }
 
-        public string RSADecryptText(byte[] encryptedData)
+
+        public string EncryptTextRSA(string plainText)
         {
-            return RSADecryptText(encryptedData, rsaprivateKey);
+            return "NDP_" + rsaEncType.RSAEncryptText(plainText);
         }
 
-        public byte[] RSAEncryptText(string plainText, X509Certificate2 certificate)
+        public string DecryptTextRSA(string szBase64EncData)
         {
-            byte[] plainData = Encoding.UTF8.GetBytes(plainText);
+            if(szBase64EncData.Substring(0, 4) != "NDP_")
+                return szBase64EncData;
 
-            // Create a new instance of the RSACryptoServiceProvider
-            using (RSA rsapublickey = certificate.GetRSAPublicKey())
-            {
-                return RSAEncryptText(plainText, rsapublickey);
-            }
+            szBase64EncData = szBase64EncData.Substring(4);
+            return rsaEncType.RSADecryptText(szBase64EncData);
         }
 
-        public string RSADecryptText(byte[] encryptedData, X509Certificate2 certificate)
+        public string EncryptTextAES(string plainText)
         {
-            // Create a new instance of the RSACryptoServiceProvider
-            using (RSA rsaprivatekey = certificate.GetRSAPrivateKey())
-            {
-                return RSADecryptText(encryptedData, rsaprivatekey);
-            }
+            return aesEncType.Encrypt(plainText);
         }
 
-        public byte[] RSAEncryptText(string plainText, RSA rsaPublicKey)
+        public string DecryptTextAES(string szBase64EncData)
         {
-            byte[] plainData = Encoding.UTF8.GetBytes(plainText);
-
-            // Use the RSA public key to encrypt the data
-            byte[] encryptedData = rsaPublicKey.Encrypt(plainData, RSAEncryptionPadding.OaepSHA256);
-            return encryptedData;
-        }
-
-        public string RSADecryptText(byte[] encryptedData, RSA rsaPrivateKey)
-        {
-            // Use the RSA private key to decrypt the data
-            byte[] decryptedData = rsaPrivateKey.Decrypt(encryptedData, RSAEncryptionPadding.OaepSHA256);
-            string decryptedText = Encoding.UTF8.GetString(decryptedData);
-            return decryptedText;
+            return aesEncType.Decrypt(szBase64EncData);
         }
     }
 }
