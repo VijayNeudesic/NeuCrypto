@@ -19,18 +19,30 @@ namespace NeuCrypto
         }
 
         [ComVisible(true)]
-        public void InitRSA(string szCertSubjName = "")
+        public int InitRSA(string szCertSubjName = "", bool bLocalMachine = false)
         {
+            if(szCertSubjName == "")
+                szCertSubjName = "DOPCrypto";
+
             LastError = "";
             rsaEncType = new RSAEncType();
-            rsaEncType.Init(szCertSubjName);
+            int rc = rsaEncType.Init(szCertSubjName, bLocalMachine);
+
+            if(rc < 0)
+                LastError = rsaEncType.LastError;
+
+            return rc;
         }
 
-        public void InitAES(string key, string IV)
+        public int InitAES(string key, string IV)
         {
             LastError = "";
             aesEncType = new AesEncType();
-            aesEncType.Init(key, IV);
+            int rc = aesEncType.Init(key, IV);
+            if(rc < 0)
+                LastError = aesEncType.LastError;
+
+            return rc;
         }
 
 

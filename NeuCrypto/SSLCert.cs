@@ -18,19 +18,16 @@ namespace NeuCrypto
         {
             LastError = "";
         }
-        public SSLCert(string szSubjectName)
-        {
-            LastError = "";
-            x509cert = GetCertFromMyStore(szSubjectName);
-        }
 
-        public X509Certificate2 GetCertFromMyStore(string szSubjectName)
+        public int GetCertFromMyStore(string szSubjectName, bool bLocalMachine)
         {
-            X509Certificate2 certificate = null; 
+            x509cert = null; 
             try
             {
+                int iStoreLocation = (bLocalMachine) ? (int)StoreLocation.LocalMachine : (int)StoreLocation.CurrentUser;
+
                 // Open the Current User's Personal (My) certificate store
-                X509Store store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
+                X509Store store = new X509Store(StoreName.My, (StoreLocation)iStoreLocation);
 
                 // Open the store for reading (ReadOnly)
                 store.Open(OpenFlags.ReadOnly);
@@ -45,28 +42,23 @@ namespace NeuCrypto
                 // Check if the certificate with the specified subject exists
                 if (certificates.Count > 0)
                 {
-                    certificate = certificates[0];
-                    // Use the certificate as needed (e.g., for encryption/decryption)
-
-                    Console.WriteLine("Certificate Subject: " + certificate.Subject);
-                    Console.WriteLine("Certificate Thumbprint: " + certificate.Thumbprint);
-                    // You can access other properties of the certificate as needed
+                    x509cert = certificates[0];
                 }
                 else
                 {
-                    Console.WriteLine("Certificate with subject '" + szSubjectName + "' not found.");
-                    return null;
+                    LastError = "Certificate with subject name '" + szSubjectName + "' not found.";
+                    return -1;
                 }
 
                 // Close the certificate store
                 store.Close();
 
-                return certificate;
+                return 0;
             }
             catch (Exception ex)
             {
                 LastError = ex.Message;
-                return null;
+                return -1;
             }
         }
         

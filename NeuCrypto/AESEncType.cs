@@ -12,6 +12,7 @@ namespace NeuCrypto
 
     internal class AesEncType
     {
+        public string LastError { get; set; }
         private byte[] key;
         private byte[] iv;
 
@@ -19,22 +20,26 @@ namespace NeuCrypto
         {
             this.key = null;
             this.iv = null;
+            LastError = "";
         }
 
-        public void Init(string key, string iv)
+        public int Init(string key, string iv)
         {
             if (key.Length != 64)
             {
-                throw new ArgumentException("AES256 key must be 64 characters (256 bits) long.");
+                LastError = "AES256 key must be 64 characters (256 bits) long.";
+                return -1;
             }
 
             if (iv.Length != 32)
             {
-                throw new ArgumentException("AES256 IV must be 32 characters (128 bits) long.");
+                LastError = "AES256 IV must be 32 characters (128 bits) long.";
+                return -1;
             }
 
             this.key = StringToByteArray(key);
             this.iv = StringToByteArray(iv);
+            return 0;
         }
 
         public string Encrypt(string plainText)

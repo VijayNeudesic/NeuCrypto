@@ -17,24 +17,21 @@ namespace NeuCrypto
         
         public RSAEncType()
         {
-            Init();
+            LastError = "";
         }
 
-        public RSAEncType(string szCertSubjectName)
-        {
-            Init(szCertSubjectName);
-        }
-
-        public void Init(string szCertSubjName = "")
+        public int Init(string szCertSubjName, bool bLocalMachine = false)
         {
             LastError = "";
-            if (szCertSubjName != "")
+            sslCert = new SSLCert();
+            int rc = sslCert.GetCertFromMyStore(szCertSubjName, bLocalMachine);
+            if(rc < 0)
             {
-                sslCert = new SSLCert(szCertSubjName);
-                GenerateRSAKeys();
+                LastError = sslCert.LastError;
+                return -1;
             }
-            else
-                sslCert = new SSLCert();
+
+            return GenerateRSAKeys();
         }
 
         public string RSAEncryptText(string plainText)
@@ -86,16 +83,27 @@ namespace NeuCrypto
             return decryptedText;
         }
 
-        private void GenerateRSAKeys()
+        private int GenerateRSAKeys()
         {
             if (rsapublicKey == null)
             {
                 rsapublicKey = sslCert.x509cert.GetRSAPublicKey();
             }
+
             if (rsaprivateKey == null)
             {
-                rsaprivateKey = sslCert.x509cert.GetRSAPrivateKey();
+                try
+                {
+                    rsaprivateKey = sslCert.x509cert.GetRSAPrivateKey();
+                }
+                catch(Exception ex)
+                {
+                    LastError = "GenerateRSAKeys Failed: " + ex.Message;
+                    return -1;
+                }
             }
+
+            return 0;
         }
     }
 }
