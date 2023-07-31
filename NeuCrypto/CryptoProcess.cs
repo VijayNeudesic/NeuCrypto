@@ -1,9 +1,17 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.Odbc;
+using System.Data.OleDb;
+using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Permissions;
 using System.Text;
+using Serilog;
 
 namespace NeuCrypto
 {
@@ -11,63 +19,72 @@ namespace NeuCrypto
     public class CryptoProcess
     {
         public string LastError { get; set; }
-        private RSAEncType rsaEncType = null;
-        private AesEncType aesEncType = null;
+        private Logger logger = new Logger();
+        private Encryptor encryptor = new Encryptor();
 
         public CryptoProcess()
         {
         }
 
-        [ComVisible(true)]
-        public int InitRSA(string szCertSubjName = "", bool bLocalMachine = false)
+        [ComVisible(true)]                
+        public int InitAll(string logPath, bool bCertStoreLocalMachine)
         {
-            if(szCertSubjName == "")
-                szCertSubjName = "DOPCrypto";
+            logger.InitLogs(logPath);
 
-            LastError = "";
-            rsaEncType = new RSAEncType();
-            int rc = rsaEncType.Init(szCertSubjName, bLocalMachine);
+            if (encryptor.Init(logger, bCertStoreLocalMachine) < 0)
+            {
+                LastError = encryptor.LastError;
+                logger.LogMessage(Logger.LogLevel.Error, "InitAll: Encryptor.Init failed");
+                return -1;
+            }
 
-            if(rc < 0)
-                LastError = rsaEncType.LastError;
+            logger.LogMessage(Logger.LogLevel.Debug, "InitAll: Success");
 
-            return rc;
+            return 0;
         }
 
-        public int InitAES(string key, string IV)
+        public string EncryptString(string szPlainText)
         {
-            LastError = "";
-            aesEncType = new AesEncType();
-            int rc = aesEncType.Init(key, IV);
-            if(rc < 0)
-                LastError = aesEncType.LastError;
+            return encryptor.EncryptTextAES(szPlainText);
+        }
+       
+        public string DecryptString(string szEncryptedText)
+        {
+            return encryptor.DecryptTextAES(szEncryptedText);
+        }
+      
+        public int BulkEncryptAccessDBTable(string szDBPath, string szTableName, string szFieldNames, string szWhereClauseFields, string szLstFilterOperators)
+        {
+            DateTime start = DateTime.Now;
+            EncryptDB encryptDB = new EncryptDB(logger, encryptor);
+            if (encryptDB.BulkEncryptAccessDBTable(szDBPath, szTableName, szFieldNames, szWhereClauseFields, szLstFilterOperators) < 0)
+            {
+                LastError = encryptDB.LastError;
+                logger.LogMessage(Logger.LogLevel.Error, "BulkEncryptAccessDBTable: Failed");
+                return -1;
+            }
 
-            return rc;
+            TimeSpan timeDiff = DateTime.Now - start;
+            logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptAccessDBTable: {encryptDB.rows_updated}/{encryptDB.row_count} rows updated in {timeDiff.TotalSeconds} seconds");
+
+            return 0;
         }
 
-
-        public string EncryptTextRSA(string plainText)
+        public int BulkDecryptAccessDBTable(string szDBPath, string szTableName, string szFieldNames, string szWhereClauseFields, string szLstFilterOperators)
         {
-            return "NDP_" + rsaEncType.RSAEncryptText(plainText);
-        }
+            DateTime start = DateTime.Now;
+            EncryptDB encryptDB = new EncryptDB(logger, encryptor);
+            if (encryptDB.BulkDecryptAccessDBTable(szDBPath, szTableName, szFieldNames, szWhereClauseFields, szLstFilterOperators) < 0)
+            {
+                LastError = encryptDB.LastError;
+                logger.LogMessage(Logger.LogLevel.Error, "BulkDecryptAccessDBTable: Failed");
+                return -1;
+            }
 
-        public string DecryptTextRSA(string szBase64EncData)
-        {
-            if(szBase64EncData.Substring(0, 4) != "NDP_")
-                return szBase64EncData;
+            TimeSpan timeDiff = DateTime.Now - start;
+            logger.LogMessage(Logger.LogLevel.Debug, $"BulkDecryptAccessDBTable: {encryptDB.rows_updated}/{encryptDB.row_count} rows updated in {timeDiff.TotalSeconds} seconds");
 
-            szBase64EncData = szBase64EncData.Substring(4);
-            return rsaEncType.RSADecryptText(szBase64EncData);
-        }
-
-        public string EncryptTextAES(string plainText)
-        {
-            return aesEncType.Encrypt(plainText);
-        }
-
-        public string DecryptTextAES(string szBase64EncData)
-        {
-            return aesEncType.Decrypt(szBase64EncData);
+            return 0;
         }
     }
 }

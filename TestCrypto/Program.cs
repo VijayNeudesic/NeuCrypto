@@ -6,6 +6,14 @@ using NeuCrypto;
 Console.WriteLine("Hello, World!");
 
 CryptoProcess cryptoProcess = new CryptoProcess();
+
+
+cryptoProcess.InitAll(@"./", false);
+cryptoProcess.BulkEncryptAccessDBTable(@"F:\dev\dop\test\aca.accdb", "BA_ACA_ALL", "SSN|s,Firstname|s", "ID|i", "");
+
+
+
+/*
 cryptoProcess.InitRSA("DOPCrypto");
 
 //stress testing the encryption/decryption process
@@ -48,5 +56,5 @@ for(int i = 0; i < 10000; i++)
 
 timeSpan = DateTime.Now - start;
 
-Console.WriteLine($"Press any key to exit AES...{timeSpan.TotalSeconds} seconds.");
+Console.WriteLine($"Press any key to exit AES...{timeSpan.TotalSeconds} seconds.");*/
 
