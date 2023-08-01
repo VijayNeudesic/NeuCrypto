@@ -16,7 +16,9 @@ namespace TestEncryption
             CryptoProcess cryptoProcess = new CryptoProcess();
 
             cryptoProcess.InitAll(".\\", false);
-            cryptoProcess.BulkEncryptAccessDBTable(@"F:\dev\dop\test\aca.accdb", "BA_ACA_ALL", "SSN,Firstname", "ID", "");
+            string sztext = cryptoProcess.EncryptString("Hello, World!");
+
+            cryptoProcess.BulkEncryptAccessDBTable(@"F:\dev\dop\test\DOP_MASTER_BE.mdb", "01_Deacons", "NameOfSpouse", "PersonID", "");
 
             cryptoProcess.BulkDecryptAccessDBTable(@"F:\dev\dop\test\aca.accdb", "BA_ACA_ALL", "SSN,Firstname", "ID", "");
 

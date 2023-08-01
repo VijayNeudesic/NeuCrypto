@@ -87,6 +87,9 @@ namespace NeuCrypto
         {
             if (String.IsNullOrEmpty(plainText)) return "";
 
+            if(plainText.Substring(0, EncryptDataHeader.Length) == EncryptDataHeader)
+                return plainText;
+
             return EncryptDataHeader + aesEncType.Encrypt(plainText);
         }
 

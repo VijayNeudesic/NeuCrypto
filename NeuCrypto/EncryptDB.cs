@@ -154,7 +154,7 @@ namespace NeuCrypto
                                         string key = whereClauseFields.ElementAt(i).Key;
                                         // Get the value of the field
                                         object fieldValue = reader[key];
-                                        var TypeAndSize = ColumnTypeAndSize[key];
+                                        var TypeAndSize = ColumnTypeAndSize[key.ToUpper()];
                                         whereClauseFields[key] = new Tuple<Type, string>(TypeAndSize.Item1, fieldValue.ToString());
                                     }
 
@@ -297,7 +297,7 @@ namespace NeuCrypto
                                     string key = whereClauseFields.ElementAt(i).Key;
                                     // Get the value of the field
                                     object fieldValue = reader[key];
-                                    var TypeAndSize = ColumnTypeAndSize[key];
+                                    var TypeAndSize = ColumnTypeAndSize[key.ToUpper()];
                                     whereClauseFields[key] = new Tuple<Type, string>(TypeAndSize.Item1, fieldValue.ToString());
                                 }
 
