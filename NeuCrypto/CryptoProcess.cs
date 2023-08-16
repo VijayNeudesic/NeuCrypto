@@ -19,6 +19,7 @@ namespace NeuCrypto
     public class CryptoProcess
     {
         public string LastError { get; set; }
+        public string StatusMsg { get; set; }
         private Logger logger = new Logger();
         private Encryptor encryptor = new Encryptor();
 
@@ -27,11 +28,11 @@ namespace NeuCrypto
         }
 
         [ComVisible(true)]                
-        public int InitAll(string logPath, bool bCertStoreLocalMachine)
+        public int InitAll(string logPath)
         {
             logger.InitLogs(logPath);
 
-            if (encryptor.Init(logger, bCertStoreLocalMachine) < 0)
+            if (encryptor.Init(logger) < 0)
             {
                 LastError = encryptor.LastError;
                 logger.LogMessage(Logger.LogLevel.Error, "InitAll: Encryptor.Init failed");
@@ -43,48 +44,61 @@ namespace NeuCrypto
             return 0;
         }
 
-        public string EncryptString(string szPlainText)
-        {
-            return encryptor.EncryptTextAES(szPlainText);
-        }
+        public string EncryptString(string szPlainText) => encryptor.EncryptTextAES(szPlainText);
        
-        public string DecryptString(string szEncryptedText)
-        {
-            return encryptor.DecryptTextAES(szEncryptedText);
-        }
+        public string DecryptString(string szEncryptedText) => encryptor.DecryptTextAES(szEncryptedText);
+
+        public string DecryptStringForDB(string szEncryptedText) => encryptor.DecryptTextAESForDB(szEncryptedText);
       
-        public int BulkEncryptAccessDBTable(string szDBPath, string szTableName, string szFieldNames, string szWhereClauseFields, string szLstFilterOperators)
+        public int BulkEncryptDBTable(string szSQLServer, string szDBNameOrPath, string szTableName, string szFieldNames, string szWhereClauseFields, string szLstFilterOperators)
         {
             DateTime start = DateTime.Now;
-            EncryptDB encryptDB = new EncryptDB(logger, encryptor);
-            if (encryptDB.BulkEncryptAccessDBTable(szDBPath, szTableName, szFieldNames, szWhereClauseFields, szLstFilterOperators) < 0)
+            EncryptDB encryptDB;
+
+            if (szSQLServer.Length > 0)
+                encryptDB = new EncryptDB_SQL(logger, encryptor, szSQLServer, szDBNameOrPath);
+            else
+                encryptDB = new EncryptDB_Access(logger, encryptor, szDBNameOrPath);
+
+            if (encryptDB.BulkEncryptDBTable(szTableName, szFieldNames, szWhereClauseFields, szLstFilterOperators) < 0)
             {
                 LastError = encryptDB.LastError;
-                logger.LogMessage(Logger.LogLevel.Error, "BulkEncryptAccessDBTable: Failed");
+                logger.LogMessage(Logger.LogLevel.Error, "BulkEncryptDBTable: Failed");
                 return -1;
             }
 
             TimeSpan timeDiff = DateTime.Now - start;
-            logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptAccessDBTable: {encryptDB.rows_updated}/{encryptDB.row_count} rows updated in {timeDiff.TotalSeconds} seconds");
+            
+            StatusMsg = $"Completed: {encryptDB.rows_updated}/{encryptDB.row_count} rows updated in {timeDiff.TotalSeconds} seconds";
+            logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptDBTable: {StatusMsg}");
 
             return 0;
         }
 
-        public int BulkDecryptAccessDBTable(string szDBPath, string szTableName, string szFieldNames, string szWhereClauseFields, string szLstFilterOperators)
+        public int BulkDecryptDBTable(string szSQLServer, string szDBNameOrPath, string szTableName, string szFieldNames, string szWhereClauseFields, string szLstFilterOperators)
         {
             DateTime start = DateTime.Now;
-            EncryptDB encryptDB = new EncryptDB(logger, encryptor);
-            if (encryptDB.BulkDecryptAccessDBTable(szDBPath, szTableName, szFieldNames, szWhereClauseFields, szLstFilterOperators) < 0)
+            EncryptDB encryptDB;
+
+            if (szSQLServer.Length > 0)
+                encryptDB = new EncryptDB_SQL(logger, encryptor, szSQLServer, szDBNameOrPath);
+            else
+                encryptDB = new EncryptDB_Access(logger, encryptor, szDBNameOrPath);
+
+            if (encryptDB.BulkDecryptDBTable(szTableName, szFieldNames, szWhereClauseFields, szLstFilterOperators) < 0)
             {
                 LastError = encryptDB.LastError;
-                logger.LogMessage(Logger.LogLevel.Error, "BulkDecryptAccessDBTable: Failed");
+                logger.LogMessage(Logger.LogLevel.Error, "BulkDecryptDBTable: Failed");
                 return -1;
             }
 
             TimeSpan timeDiff = DateTime.Now - start;
-            logger.LogMessage(Logger.LogLevel.Debug, $"BulkDecryptAccessDBTable: {encryptDB.rows_updated}/{encryptDB.row_count} rows updated in {timeDiff.TotalSeconds} seconds");
+            StatusMsg = $"Completed: {encryptDB.rows_updated}/{encryptDB.row_count} rows updated in {timeDiff.TotalSeconds} seconds";
+            logger.LogMessage(Logger.LogLevel.Debug, $"BulkDecryptDBTable: {StatusMsg}");
 
             return 0;
         }
+
+        public string GenerateAccessCode() => encryptor.GenerateAccessCode();
     }
 }

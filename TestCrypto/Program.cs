@@ -8,8 +8,8 @@ Console.WriteLine("Hello, World!");
 CryptoProcess cryptoProcess = new CryptoProcess();
 
 
-cryptoProcess.InitAll(@"./", false);
-cryptoProcess.BulkEncryptAccessDBTable(@"F:\dev\dop\test\aca.accdb", "BA_ACA_ALL", "SSN|s,Firstname|s", "ID|i", "");
+cryptoProcess.InitAll(@"./");
+cryptoProcess.BulkEncryptDBTable("", @"F:\dev\dop\test\aca.accdb", "BA_ACA_ALL", "SSN|s,Firstname|s", "ID|i", "");
 
 
 

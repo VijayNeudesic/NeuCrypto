@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.IO.Pipes;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Win32;
 
 namespace NeuCrypto
 {
@@ -21,18 +23,37 @@ namespace NeuCrypto
             aesEncType = new AesEncType();
         }
 
-        public int Init(Logger _logger, bool bCertStoreLocalMachine)
+        public int Init(Logger _logger)
         {
             logger = _logger;
 
-            if (InitRSA("DOPCrypto", bCertStoreLocalMachine) < 0)
+            RegistryKey key1 = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Neudesic\\Neucrypto\\", false);
+
+            if(key1 == null)
+            {
+                logger.LogMessage(Logger.LogLevel.Error, "Init: Registry key not found");
+                return -1;
+            }
+
+            string certname = key1.GetValue("CertName").ToString();
+
+            logger.LogMessage(Logger.LogLevel.Debug, "Init: CertName: " + certname);
+
+            string value1 = key1.GetValue("Value1").ToString();
+
+            key1.Close();
+
+            if (InitRSA(certname) < 0)
             {
                 logger.LogMessage(Logger.LogLevel.Error, "Init: InitRSA failed");
                 return -1;
             }
 
-            string key = "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF"; // 64 characters (256 bits)
-            string iv = "0123456789ABCDEF0123456789ABCDEF"; // 32 characters (128 bits)
+            //string d = EncryptTextRSA(value1);
+            string decryptedVal = DecryptTextRSA(value1);
+
+            string key = decryptedVal + "ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF"; // 64 characters (256 bits), reading first 10 chars from registry
+            string iv = decryptedVal + "ABCDEF0123456789ABCDEF"; // 32 characters (128 bits)
 
             if (InitAES(key, iv) < 0)
             {
@@ -43,14 +64,14 @@ namespace NeuCrypto
             return 0;
         }
 
-        public int InitRSA(string szCertSubjName = "", bool bLocalMachine = false)
+        public int InitRSA(string szCertSubjName = "")
         {
             if (szCertSubjName == "")
                 szCertSubjName = "DOPCrypto";
 
             LastError = "";
             rsaEncType = new RSAEncType();
-            int rc = rsaEncType.Init(szCertSubjName, bLocalMachine);
+            int rc = rsaEncType.Init(szCertSubjName, true);
 
             if (rc < 0)
                 LastError = rsaEncType.LastError;
@@ -71,12 +92,22 @@ namespace NeuCrypto
 
         public string EncryptTextRSA(string plainText)
         {
+            if (String.IsNullOrEmpty(plainText)) return "";
+
+            // If already encrypted, return as is
+            if (plainText.StartsWith(EncryptDataHeader))
+                return plainText;
+
             return EncryptDataHeader + rsaEncType.RSAEncryptText(plainText);
         }
 
         public string DecryptTextRSA(string szBase64EncData)
         {
-            if (szBase64EncData.Substring(0, EncryptDataHeader.Length) != EncryptDataHeader)
+            if(String.IsNullOrEmpty(szBase64EncData))
+                return "";
+
+            // If not encrypted, return as is
+            if (!szBase64EncData.StartsWith(EncryptDataHeader))
                 return szBase64EncData;
 
             szBase64EncData = szBase64EncData.Substring(EncryptDataHeader.Length);
@@ -87,7 +118,8 @@ namespace NeuCrypto
         {
             if (String.IsNullOrEmpty(plainText)) return "";
 
-            if(plainText.Substring(0, EncryptDataHeader.Length) == EncryptDataHeader)
+            // If already encrypted, return as is
+            if(plainText.StartsWith(EncryptDataHeader))
                 return plainText;
 
             return EncryptDataHeader + aesEncType.Encrypt(plainText);
@@ -95,11 +127,48 @@ namespace NeuCrypto
 
         public string DecryptTextAES(string szBase64EncData)
         {
-            if (szBase64EncData.Substring(0, EncryptDataHeader.Length) != EncryptDataHeader)
+            if (String.IsNullOrEmpty(szBase64EncData))
+                return "";
+
+            // If not encrypted, return as is
+            if (!szBase64EncData.StartsWith(EncryptDataHeader))
                 return szBase64EncData;
 
             szBase64EncData = szBase64EncData.Substring(EncryptDataHeader.Length);
             return aesEncType.Decrypt(szBase64EncData);
+        }
+
+        public string DecryptTextAESForDB(string szBase64EncData)
+        {
+            return DecryptTextAES(szBase64EncData).Replace("'", "''");
+        }
+
+        public string GenerateAccessCode()
+        {
+            // Replace this secret key with your own
+            string secretKey = "SECRET-KEY";
+
+            // Get today's date
+            DateTime currentDate = DateTime.Now.Date;
+
+            // Combine secret key and date
+            string combinedString = secretKey + currentDate.ToString("yyyyMMdd");
+
+            string code = "";
+
+            // Compute a hash of the combined string
+            using (SHA256 sha256 = SHA256.Create())
+            {
+                byte[] hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(combinedString));
+
+                // Take the first 4 bytes of the hash and convert them to an integer
+                int dayCode = BitConverter.ToInt32(hashBytes, 0) % 10000;
+
+                // Format the code as a 4-digit string
+                code = dayCode.ToString("D4");
+            }
+
+            return code;
         }
     }
 }

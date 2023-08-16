@@ -20,7 +20,7 @@ namespace NeuCrypto
             LastError = "";
         }
 
-        public int Init(string szCertSubjName, bool bLocalMachine = false)
+        public int Init(string szCertSubjName, bool bLocalMachine)
         {
             LastError = "";
             sslCert = new SSLCert();
