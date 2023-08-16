@@ -19,12 +19,12 @@ namespace TestEncryption
             string sztext = cryptoProcess.EncryptString("Hello, World!");
 
             //cryptoProcess.BulkEncryptDBTable("VBANSAL01\\SQLEXPRESS", "TestBulkLoad", "BulkRecords", "column2", "column2", "");
-            cryptoProcess.BulkDecryptDBTable("VBANSAL01\\SQLEXPRESS", "TestBulkLoad", "BulkRecords", "column2", "column2", "");
+            cryptoProcess.BulkDecryptDBTable("VBANSAL01\\SQLEXPRESS", "TestBulkLoad", "BulkRecords", "column2", "column2", "", "1234");
 
             //cryptoProcess.BulkEncryptDBTable("", @"F:\dev\dop\test\DOP_MASTER_BE.mdb", "01_Deacons", "NameOfSpouse", "PersonID", "");
 
             cryptoProcess.BulkEncryptDBTable("", @"F:\dev\dop\test\aca.accdb", "BA_ACA_ALL", "SSN,Firstname", "ID", "");
-            cryptoProcess.BulkDecryptDBTable("", @"F:\dev\dop\test\aca.accdb", "BA_ACA_ALL", "SSN,Firstname", "ID", "");
+            cryptoProcess.BulkDecryptDBTable("", @"F:\dev\dop\test\aca.accdb", "BA_ACA_ALL", "SSN,Firstname", "ID", "", "1234");
 
             /* cryptoProcess.InitRSA("DOPCrypto");
 

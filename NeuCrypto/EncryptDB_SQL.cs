@@ -88,7 +88,7 @@ namespace NeuCrypto
                                     {
                                         reader.Close();
                                         connection.Close();
-                                        LastError = $"BulkEncryptAccessDBTable: Encrypted value is larger than the column size. Column: {key}, Encrypted value: {encryptedValue}, Column size: {typeAndSize.Item2}";
+                                        LastError = $"BulkEncryptAccessDBTable: Encrypted value is larger than the column size. Column: {key}, Encrypted value Size: {encryptedValue.Length}, Column size: {typeAndSize.Item2}";
                                         logger.LogMessage(Logger.LogLevel.Error, LastError);
                                         return -1;
                                     }

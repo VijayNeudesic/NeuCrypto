@@ -84,5 +84,11 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\NeuCrypLib\NeuCrypLib.csproj">
+      <Project>{a6860b0d-aa4e-4605-852c-09c728507516}</Project>
+      <Name>NeuCrypLib</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

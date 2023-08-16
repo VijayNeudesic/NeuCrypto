@@ -108,7 +108,7 @@ namespace EncryptionTool
             }
         }
 
-        private async Task BulkDecrypt()
+        private async Task BulkDecrypt(string szAccessCode)
         {
             CryptoProcess cryptoProcess = new CryptoProcess();
             cryptoProcess.InitAll(@".\");
@@ -125,7 +125,7 @@ namespace EncryptionTool
                                                      row.Cells["TableName"].Value.ToString(),
                                                      row.Cells["Fields"].Value.ToString(),
                                                      row.Cells["WhereCls"].Value.ToString(),
-                                                     row.Cells["Filters"].Value.ToString());
+                                                     row.Cells["Filters"].Value.ToString(), szAccessCode);
 
                     if (rc == 0)
                     {
@@ -151,18 +151,14 @@ namespace EncryptionTool
                 return;
             }
 
-            CryptoProcess cryptoProcess = new CryptoProcess();
-            if(txtAccCode.Text != cryptoProcess.GenerateAccessCode())
-            {
-                MessageBox.Show("Invalid Access Code.");
-                return;
-            }
+            string szAccessCode = txtAccCode.Text;
+            txtAccCode.Text = "";
 
             ResetStatus();
             btnBulkDecryption.Enabled = false;
             btnBulkEncrypt.Enabled = false;
 
-            Task.Run(async () => await BulkDecrypt());
+            Task.Run(async () => await BulkDecrypt(szAccessCode));
 
             btnBulkDecryption.Enabled = true;
             btnBulkEncrypt.Enabled = true;

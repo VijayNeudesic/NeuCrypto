@@ -32,6 +32,10 @@
             this.CfgFileDialog = new System.Windows.Forms.OpenFileDialog();
             this.lblCfgFileName = new System.Windows.Forms.Label();
             this.dgToDoList = new System.Windows.Forms.DataGridView();
+            this.btnBulkEncrypt = new System.Windows.Forms.Button();
+            this.btnBulkDecryption = new System.Windows.Forms.Button();
+            this.label1 = new System.Windows.Forms.Label();
+            this.txtAccCode = new System.Windows.Forms.TextBox();
             this.ServerName = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.DBNameOrPath = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.TableName = new System.Windows.Forms.DataGridViewTextBoxColumn();
@@ -39,10 +43,6 @@
             this.WhereCls = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Filters = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Status = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.btnBulkEncrypt = new System.Windows.Forms.Button();
-            this.btnBulkDecryption = new System.Windows.Forms.Button();
-            this.label1 = new System.Windows.Forms.Label();
-            this.txtAccCode = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this.dgToDoList)).BeginInit();
             this.SuspendLayout();
             // 
@@ -76,6 +76,7 @@
             // 
             // dgToDoList
             // 
+            this.dgToDoList.AllowDrop = true;
             this.dgToDoList.AllowUserToAddRows = false;
             this.dgToDoList.AllowUserToDeleteRows = false;
             this.dgToDoList.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
@@ -90,78 +91,21 @@
             this.WhereCls,
             this.Filters,
             this.Status});
-            this.dgToDoList.EditMode = System.Windows.Forms.DataGridViewEditMode.EditOnKeystroke;
+            this.dgToDoList.EditMode = System.Windows.Forms.DataGridViewEditMode.EditOnF2;
             this.dgToDoList.Location = new System.Drawing.Point(15, 70);
             this.dgToDoList.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.dgToDoList.MultiSelect = false;
             this.dgToDoList.Name = "dgToDoList";
-            this.dgToDoList.ReadOnly = true;
             this.dgToDoList.RowHeadersVisible = false;
             this.dgToDoList.RowHeadersWidth = 51;
-            this.dgToDoList.Size = new System.Drawing.Size(1475, 601);
+            this.dgToDoList.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.CellSelect;
+            this.dgToDoList.Size = new System.Drawing.Size(1501, 598);
             this.dgToDoList.TabIndex = 2;
-            // 
-            // ServerName
-            // 
-            this.ServerName.HeaderText = "Database Server";
-            this.ServerName.MinimumWidth = 6;
-            this.ServerName.Name = "ServerName";
-            this.ServerName.ReadOnly = true;
-            this.ServerName.Visible = false;
-            this.ServerName.Width = 125;
-            // 
-            // DBNameOrPath
-            // 
-            this.DBNameOrPath.HeaderText = "Database";
-            this.DBNameOrPath.MinimumWidth = 6;
-            this.DBNameOrPath.Name = "DBNameOrPath";
-            this.DBNameOrPath.ReadOnly = true;
-            this.DBNameOrPath.Width = 150;
-            // 
-            // TableName
-            // 
-            this.TableName.HeaderText = "Table";
-            this.TableName.MinimumWidth = 6;
-            this.TableName.Name = "TableName";
-            this.TableName.ReadOnly = true;
-            this.TableName.Width = 150;
-            // 
-            // Fields
-            // 
-            this.Fields.HeaderText = "Fields To Encrypt";
-            this.Fields.MinimumWidth = 6;
-            this.Fields.Name = "Fields";
-            this.Fields.ReadOnly = true;
-            this.Fields.Width = 200;
-            // 
-            // WhereCls
-            // 
-            this.WhereCls.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            this.WhereCls.HeaderText = "Where Clause Fields";
-            this.WhereCls.MinimumWidth = 6;
-            this.WhereCls.Name = "WhereCls";
-            this.WhereCls.ReadOnly = true;
-            // 
-            // Filters
-            // 
-            this.Filters.HeaderText = "Filters";
-            this.Filters.MinimumWidth = 6;
-            this.Filters.Name = "Filters";
-            this.Filters.ReadOnly = true;
-            this.Filters.Width = 200;
-            // 
-            // Status
-            // 
-            this.Status.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            this.Status.HeaderText = "Status";
-            this.Status.MinimumWidth = 6;
-            this.Status.Name = "Status";
-            this.Status.ReadOnly = true;
             // 
             // btnBulkEncrypt
             // 
             this.btnBulkEncrypt.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnBulkEncrypt.Location = new System.Drawing.Point(576, 678);
+            this.btnBulkEncrypt.Location = new System.Drawing.Point(602, 675);
             this.btnBulkEncrypt.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.btnBulkEncrypt.Name = "btnBulkEncrypt";
             this.btnBulkEncrypt.Size = new System.Drawing.Size(200, 37);
@@ -173,7 +117,7 @@
             // btnBulkDecryption
             // 
             this.btnBulkDecryption.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnBulkDecryption.Location = new System.Drawing.Point(784, 678);
+            this.btnBulkDecryption.Location = new System.Drawing.Point(810, 675);
             this.btnBulkDecryption.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.btnBulkDecryption.Name = "btnBulkDecryption";
             this.btnBulkDecryption.Size = new System.Drawing.Size(200, 37);
@@ -184,8 +128,9 @@
             // 
             // label1
             // 
+            this.label1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(1185, 688);
+            this.label1.Location = new System.Drawing.Point(1305, 685);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(91, 16);
             this.label1.TabIndex = 5;
@@ -193,16 +138,67 @@
             // 
             // txtAccCode
             // 
-            this.txtAccCode.Location = new System.Drawing.Point(1282, 685);
+            this.txtAccCode.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.txtAccCode.Location = new System.Drawing.Point(1402, 682);
             this.txtAccCode.Name = "txtAccCode";
             this.txtAccCode.Size = new System.Drawing.Size(100, 22);
             this.txtAccCode.TabIndex = 6;
+            // 
+            // ServerName
+            // 
+            this.ServerName.HeaderText = "Database Server";
+            this.ServerName.MinimumWidth = 6;
+            this.ServerName.Name = "ServerName";
+            this.ServerName.Visible = false;
+            this.ServerName.Width = 125;
+            // 
+            // DBNameOrPath
+            // 
+            this.DBNameOrPath.HeaderText = "Database";
+            this.DBNameOrPath.MinimumWidth = 6;
+            this.DBNameOrPath.Name = "DBNameOrPath";
+            this.DBNameOrPath.Width = 150;
+            // 
+            // TableName
+            // 
+            this.TableName.HeaderText = "Table";
+            this.TableName.MinimumWidth = 6;
+            this.TableName.Name = "TableName";
+            this.TableName.Width = 150;
+            // 
+            // Fields
+            // 
+            this.Fields.HeaderText = "Fields To Encrypt";
+            this.Fields.MinimumWidth = 6;
+            this.Fields.Name = "Fields";
+            this.Fields.Width = 200;
+            // 
+            // WhereCls
+            // 
+            this.WhereCls.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.WhereCls.HeaderText = "Uniquely Identifiable Fields";
+            this.WhereCls.MinimumWidth = 6;
+            this.WhereCls.Name = "WhereCls";
+            // 
+            // Filters
+            // 
+            this.Filters.HeaderText = "Operators";
+            this.Filters.MinimumWidth = 6;
+            this.Filters.Name = "Filters";
+            this.Filters.Width = 200;
+            // 
+            // Status
+            // 
+            this.Status.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.Status.HeaderText = "Status";
+            this.Status.MinimumWidth = 6;
+            this.Status.Name = "Status";
             // 
             // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1505, 727);
+            this.ClientSize = new System.Drawing.Size(1531, 724);
             this.Controls.Add(this.txtAccCode);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.btnBulkDecryption);
@@ -226,6 +222,9 @@
         private System.Windows.Forms.Label lblCfgFileName;
         private System.Windows.Forms.DataGridView dgToDoList;
         private System.Windows.Forms.Button btnBulkEncrypt;
+        private System.Windows.Forms.Button btnBulkDecryption;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.TextBox txtAccCode;
         private System.Windows.Forms.DataGridViewTextBoxColumn ServerName;
         private System.Windows.Forms.DataGridViewTextBoxColumn DBNameOrPath;
         private System.Windows.Forms.DataGridViewTextBoxColumn TableName;
@@ -233,9 +232,6 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn WhereCls;
         private System.Windows.Forms.DataGridViewTextBoxColumn Filters;
         private System.Windows.Forms.DataGridViewTextBoxColumn Status;
-        private System.Windows.Forms.Button btnBulkDecryption;
-        private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.TextBox txtAccCode;
     }
 }
 

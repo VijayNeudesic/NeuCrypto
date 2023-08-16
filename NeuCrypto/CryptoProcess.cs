@@ -75,8 +75,17 @@ namespace NeuCrypto
             return 0;
         }
 
-        public int BulkDecryptDBTable(string szSQLServer, string szDBNameOrPath, string szTableName, string szFieldNames, string szWhereClauseFields, string szLstFilterOperators)
+        public int BulkDecryptDBTable(string szSQLServer, string szDBNameOrPath, string szTableName, string szFieldNames, string szWhereClauseFields, string szLstFilterOperators, string szAccessCode)
         {
+            string szGeneratedAccessCode = AccessCode.GenerateAccessCode();
+
+            if (szAccessCode != szGeneratedAccessCode)
+            {
+                LastError = "Invalid access code";
+                logger.LogMessage(Logger.LogLevel.Error, $"BulkDecryptDBTable: {LastError}");
+                return -1;
+            }
+
             DateTime start = DateTime.Now;
             EncryptDB encryptDB;
 
@@ -99,6 +108,5 @@ namespace NeuCrypto
             return 0;
         }
 
-        public string GenerateAccessCode() => encryptor.GenerateAccessCode();
     }
 }
