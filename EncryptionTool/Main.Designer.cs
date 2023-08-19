@@ -36,7 +36,10 @@
             this.btnBulkDecryption = new System.Windows.Forms.Button();
             this.label1 = new System.Windows.Forms.Label();
             this.txtAccCode = new System.Windows.Forms.TextBox();
-            this.ServerName = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.rdDBAccess = new System.Windows.Forms.RadioButton();
+            this.rdDBSQL = new System.Windows.Forms.RadioButton();
+            this.txtSQLServer = new System.Windows.Forms.TextBox();
+            this.btnResetAll = new System.Windows.Forms.Button();
             this.DBNameOrPath = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.TableName = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Fields = new System.Windows.Forms.DataGridViewTextBoxColumn();
@@ -67,7 +70,7 @@
             // lblCfgFileName
             // 
             this.lblCfgFileName.AutoSize = true;
-            this.lblCfgFileName.Location = new System.Drawing.Point(211, 18);
+            this.lblCfgFileName.Location = new System.Drawing.Point(205, 23);
             this.lblCfgFileName.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.lblCfgFileName.Name = "lblCfgFileName";
             this.lblCfgFileName.Size = new System.Drawing.Size(69, 16);
@@ -77,14 +80,12 @@
             // dgToDoList
             // 
             this.dgToDoList.AllowDrop = true;
-            this.dgToDoList.AllowUserToAddRows = false;
             this.dgToDoList.AllowUserToDeleteRows = false;
             this.dgToDoList.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.dgToDoList.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dgToDoList.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
-            this.ServerName,
             this.DBNameOrPath,
             this.TableName,
             this.Fields,
@@ -92,21 +93,21 @@
             this.Filters,
             this.Status});
             this.dgToDoList.EditMode = System.Windows.Forms.DataGridViewEditMode.EditOnF2;
-            this.dgToDoList.Location = new System.Drawing.Point(15, 70);
-            this.dgToDoList.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.dgToDoList.Location = new System.Drawing.Point(15, 93);
+            this.dgToDoList.Margin = new System.Windows.Forms.Padding(4);
             this.dgToDoList.MultiSelect = false;
             this.dgToDoList.Name = "dgToDoList";
             this.dgToDoList.RowHeadersVisible = false;
             this.dgToDoList.RowHeadersWidth = 51;
             this.dgToDoList.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.CellSelect;
-            this.dgToDoList.Size = new System.Drawing.Size(1501, 598);
+            this.dgToDoList.Size = new System.Drawing.Size(1165, 226);
             this.dgToDoList.TabIndex = 2;
             // 
             // btnBulkEncrypt
             // 
             this.btnBulkEncrypt.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnBulkEncrypt.Location = new System.Drawing.Point(602, 675);
-            this.btnBulkEncrypt.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.btnBulkEncrypt.Location = new System.Drawing.Point(266, 326);
+            this.btnBulkEncrypt.Margin = new System.Windows.Forms.Padding(4);
             this.btnBulkEncrypt.Name = "btnBulkEncrypt";
             this.btnBulkEncrypt.Size = new System.Drawing.Size(200, 37);
             this.btnBulkEncrypt.TabIndex = 3;
@@ -117,8 +118,8 @@
             // btnBulkDecryption
             // 
             this.btnBulkDecryption.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnBulkDecryption.Location = new System.Drawing.Point(810, 675);
-            this.btnBulkDecryption.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.btnBulkDecryption.Location = new System.Drawing.Point(474, 326);
+            this.btnBulkDecryption.Margin = new System.Windows.Forms.Padding(4);
             this.btnBulkDecryption.Name = "btnBulkDecryption";
             this.btnBulkDecryption.Size = new System.Drawing.Size(200, 37);
             this.btnBulkDecryption.TabIndex = 4;
@@ -130,7 +131,7 @@
             // 
             this.label1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(1305, 685);
+            this.label1.Location = new System.Drawing.Point(978, 336);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(91, 16);
             this.label1.TabIndex = 5;
@@ -139,18 +140,54 @@
             // txtAccCode
             // 
             this.txtAccCode.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.txtAccCode.Location = new System.Drawing.Point(1402, 682);
+            this.txtAccCode.Location = new System.Drawing.Point(1075, 333);
             this.txtAccCode.Name = "txtAccCode";
             this.txtAccCode.Size = new System.Drawing.Size(100, 22);
             this.txtAccCode.TabIndex = 6;
             // 
-            // ServerName
+            // rdDBAccess
             // 
-            this.ServerName.HeaderText = "Database Server";
-            this.ServerName.MinimumWidth = 6;
-            this.ServerName.Name = "ServerName";
-            this.ServerName.Visible = false;
-            this.ServerName.Width = 125;
+            this.rdDBAccess.AutoSize = true;
+            this.rdDBAccess.Checked = true;
+            this.rdDBAccess.Location = new System.Drawing.Point(15, 66);
+            this.rdDBAccess.Name = "rdDBAccess";
+            this.rdDBAccess.Size = new System.Drawing.Size(95, 20);
+            this.rdDBAccess.TabIndex = 7;
+            this.rdDBAccess.TabStop = true;
+            this.rdDBAccess.Text = "Access DB";
+            this.rdDBAccess.UseVisualStyleBackColor = true;
+            this.rdDBAccess.CheckedChanged += new System.EventHandler(this.rdDBAccess_CheckedChanged);
+            // 
+            // rdDBSQL
+            // 
+            this.rdDBSQL.AutoSize = true;
+            this.rdDBSQL.Location = new System.Drawing.Point(116, 66);
+            this.rdDBSQL.Name = "rdDBSQL";
+            this.rdDBSQL.Size = new System.Drawing.Size(97, 20);
+            this.rdDBSQL.TabIndex = 8;
+            this.rdDBSQL.TabStop = true;
+            this.rdDBSQL.Text = "SQL Server";
+            this.rdDBSQL.UseVisualStyleBackColor = true;
+            this.rdDBSQL.CheckedChanged += new System.EventHandler(this.rdDBSQL_CheckedChanged);
+            // 
+            // txtSQLServer
+            // 
+            this.txtSQLServer.Location = new System.Drawing.Point(219, 65);
+            this.txtSQLServer.Name = "txtSQLServer";
+            this.txtSQLServer.Size = new System.Drawing.Size(305, 22);
+            this.txtSQLServer.TabIndex = 9;
+            this.txtSQLServer.Visible = false;
+            // 
+            // btnResetAll
+            // 
+            this.btnResetAll.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnResetAll.Location = new System.Drawing.Point(1061, 25);
+            this.btnResetAll.Name = "btnResetAll";
+            this.btnResetAll.Size = new System.Drawing.Size(114, 33);
+            this.btnResetAll.TabIndex = 10;
+            this.btnResetAll.Text = "Reset All";
+            this.btnResetAll.UseVisualStyleBackColor = true;
+            this.btnResetAll.Click += new System.EventHandler(this.btnResetAll_Click);
             // 
             // DBNameOrPath
             // 
@@ -193,12 +230,17 @@
             this.Status.HeaderText = "Status";
             this.Status.MinimumWidth = 6;
             this.Status.Name = "Status";
+            this.Status.ReadOnly = true;
             // 
             // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1531, 724);
+            this.ClientSize = new System.Drawing.Size(1195, 375);
+            this.Controls.Add(this.btnResetAll);
+            this.Controls.Add(this.txtSQLServer);
+            this.Controls.Add(this.rdDBSQL);
+            this.Controls.Add(this.rdDBAccess);
             this.Controls.Add(this.txtAccCode);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.btnBulkDecryption);
@@ -225,7 +267,10 @@
         private System.Windows.Forms.Button btnBulkDecryption;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.TextBox txtAccCode;
-        private System.Windows.Forms.DataGridViewTextBoxColumn ServerName;
+        private System.Windows.Forms.RadioButton rdDBAccess;
+        private System.Windows.Forms.RadioButton rdDBSQL;
+        private System.Windows.Forms.TextBox txtSQLServer;
+        private System.Windows.Forms.Button btnResetAll;
         private System.Windows.Forms.DataGridViewTextBoxColumn DBNameOrPath;
         private System.Windows.Forms.DataGridViewTextBoxColumn TableName;
         private System.Windows.Forms.DataGridViewTextBoxColumn Fields;

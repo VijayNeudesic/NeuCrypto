@@ -11,7 +11,6 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Permissions;
 using System.Text;
-using Serilog;
 
 namespace NeuCrypto
 {
@@ -83,7 +82,7 @@ namespace NeuCrypto
             {
                 LastError = "Invalid access code";
                 logger.LogMessage(Logger.LogLevel.Error, $"BulkDecryptDBTable: {LastError}");
-                return -1;
+                return -2;
             }
 
             DateTime start = DateTime.Now;

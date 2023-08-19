@@ -5,19 +5,20 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Collections;
 
 namespace NeuCrypto
 {
-    internal class EncryptDB_Access : EncryptDB
+    public class EncryptDB_SQL : EncryptDB
     {
-        public EncryptDB_Access(Logger _logger, Encryptor _encryptor, string DBPath) : base(_logger, _encryptor)
+        public EncryptDB_SQL(Logger _logger, Encryptor _encryptor, string szSQLServer, string szDBName) : base(_logger, _encryptor)
         {
-            connString = $"Driver={{Microsoft Access Driver (*.mdb, *.accdb)}};Dbq={DBPath};";
+            connString = "Driver={SQL Server};Server=" + szSQLServer + ";Database=" + szDBName + ";Trusted_Connection=yes;";
         }
 
         public override int BulkEncryptDBTable(string szTableName, string szFieldNames, string szWhereClauseFields, string szLstFilterOperators)
         {
-            logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptAccessDBTable: {connString}, {szTableName}, {szFieldNames}, {szWhereClauseFields}, {szLstFilterOperators}");
+            logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptDBTable: {connString}, {szTableName}, {szFieldNames}, {szWhereClauseFields}, {szLstFilterOperators}");
 
             //Split field names into a dictonary where field name is the key and field type is the value
             //format: id,name,dob
@@ -34,7 +35,7 @@ namespace NeuCrypto
             rows_updated = 0;
 
             Dictionary<string, Tuple<Type, int>> ColumnTypeAndSize = new Dictionary<string, Tuple<Type, int>>();
-            List<string> updateQueries = new List<string>();    
+            List<String> updateQueries = new List<string>();
 
             // Create a new OleDbConnection using the connection string
             using (OdbcConnection connection = new OdbcConnection(connString))
@@ -47,7 +48,7 @@ namespace NeuCrypto
                     // Create a command to read the data
                     string selectQuery = "SELECT * FROM " + szTableName;
 
-                    logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptAccessDBTable: {selectQuery}");
+                    logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptDBTable: {selectQuery}");
 
                     using (OdbcCommand selectCommand = new OdbcCommand(selectQuery, connection))
                     {
@@ -86,8 +87,10 @@ namespace NeuCrypto
                                     var typeAndSize = ColumnTypeAndSize[key.ToUpper()];
                                     if (encryptedValue.Length > typeAndSize.Item2)
                                     {
-                                        LastError = $"BulkEncryptAccessDBTable: Encrypted value is larger than the column size. Column: {key}, Encrypted value Size: {encryptedValue.Length}, Column size: {typeAndSize.Item2}";
+                                        LastError = $"BulkEncryptDBTable: Encrypted value is larger than the column size. Column: {key}, Encrypted value Size: {encryptedValue.Length}, Column size: {typeAndSize.Item2}";
                                         logger.LogMessage(Logger.LogLevel.Error, LastError);
+                                        reader.Close();
+                                        connection.Close();
                                         return -1;
                                     }
                                 }
@@ -114,6 +117,7 @@ namespace NeuCrypto
                                 while (reader.Read())
                                 {
                                     bool bPerformUpdate = false;
+                                    bool bFldsEmpty = true;
                                     row_count++;
 
                                     //Had to use the classic for loop to avoid the exception of collection been modified
@@ -121,6 +125,7 @@ namespace NeuCrypto
                                     {
                                         string key = encfieldNames.ElementAt(i).Key;
                                         object fieldValue = reader[key];
+                                        encfieldNames[key] = (fieldValue == DBNull.Value) ? "" : fieldValue.ToString();
 
                                         // Encrypt the field value if it is not null
                                         if (fieldValue != DBNull.Value && !fieldValue.ToString().StartsWith(Encryptor.EncryptDataHeader))
@@ -129,10 +134,13 @@ namespace NeuCrypto
                                             string encryptedValue = encryptor.EncryptTextAES(fieldValue.ToString());
                                             encfieldNames[key] = encryptedValue;
                                         }
+
+                                        if (fieldValue != DBNull.Value && !string.IsNullOrEmpty(fieldValue.ToString()))
+                                            bFldsEmpty = false;
                                     }
 
                                     // If there is no fields that were encrypted, then continue
-                                    if (!bPerformUpdate)
+                                    if (!bPerformUpdate || bFldsEmpty)
                                         continue;
 
                                     rows_updated++;
@@ -161,38 +169,66 @@ namespace NeuCrypto
                                         updateCommand.ExecuteNonQuery();
                                     }*/
 
-                                    if(!updateQueries.Contains(updateQuery))
-                                        updateQueries.Add(updateQuery);
+                                    //if(!updateQueries.Contains(updateQuery))
+                                    updateQueries.Add(updateQuery);
+
+                                    if (rows_updated % 1000 == 0)
+                                        logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptDBTable: {rows_updated} rows added. SQL: {updateQuery}");
 
                                 }
 
                                 reader.Close();
 
-                                logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptAccessDBTable: {updateQueries.Count} update queries to be executed.");
+                                logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptDBTable: {updateQueries.Count} in list.");
+                                List<string> distinctQueries = updateQueries.Distinct().ToList();
+                                logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptDBTbl: {distinctQueries.Count} distinct queries.");
 
-                                //Execute the update queries
-                                foreach (string query in updateQueries)
+                                //Now update the rows
+                                using (OdbcCommand updateCommand = connection.CreateCommand())
                                 {
-                                    using (OdbcCommand updateCommand = new OdbcCommand(query, connection))
+                                    // Set the batch update size
+                                    int batchSize = 200;
+                                    int currentBatchSize = 0;
+
+                                    foreach (string query in distinctQueries)
                                     {
+                                        updateCommand.CommandText += query + "; ";
+                                        currentBatchSize++;
+
+                                        if (currentBatchSize >= batchSize)
+                                        {
+                                            logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptDBTable: Executing batch of {batchSize} queries.");
+                                            updateCommand.ExecuteNonQuery();
+                                            updateCommand.CommandText = "";
+                                            currentBatchSize = 0;
+                                        }
+                                    }
+
+                                    // Execute any remaining batched updates
+                                    if (!string.IsNullOrEmpty(updateCommand.CommandText))
+                                    {
+                                        logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptDBTable: Executing batch of remaining {currentBatchSize} queries.");
                                         updateCommand.ExecuteNonQuery();
                                     }
                                 }
 
-                                logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptAccessDBTable: {updateQueries.Count} update queries executed.");
+                                logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptDBTable: {updateQueries.Count} update queries executed.");
                             }
                             else
                             {
                                 logger.LogMessage(Logger.LogLevel.Debug, "No rows to encrypt.");
                             }
+
+                            connection.Close();
                         }
                     }
                 }
                 catch (Exception ex)
                 {
+                    connection.Close();
                     // Handle any exceptions here
                     LastError = ex.Message;
-                    logger.LogMessage(Logger.LogLevel.Error, $"BulkEncryptAccessDBTable: {ex.Message} : UpdateQuery: {updateQuery}");
+                    logger.LogMessage(Logger.LogLevel.Error, $"BulkEncryptDBTable: {ex.Message} : UpdateQuery: {updateQuery}");
                     return -1;
                 }
 
@@ -203,7 +239,7 @@ namespace NeuCrypto
 
         public override int BulkDecryptDBTable(string szTableName, string szFieldNames, string szWhereClauseFields, string szLstFilterOperators)
         {
-            logger.LogMessage(Logger.LogLevel.Debug, $"BulkDecryptAccessDBTable: {connString}, {szTableName}, {szFieldNames}, {szWhereClauseFields}, {szLstFilterOperators}");
+            logger.LogMessage(Logger.LogLevel.Debug, $"BulkDecryptDBTable: {connString}, {szTableName}, {szFieldNames}, {szWhereClauseFields}, {szLstFilterOperators}");
 
             //Split field names into a dictonary where field name is the key and field type is the value
             //format: id,name,dob
@@ -233,7 +269,7 @@ namespace NeuCrypto
                     // Create a command to read the data
                     string selectQuery = "SELECT * FROM " + szTableName;
 
-                    logger.LogMessage(Logger.LogLevel.Debug, $"BulkDecryptAccessDBTable: {selectQuery}");
+                    logger.LogMessage(Logger.LogLevel.Debug, $"BulkDecryptDBTable: {selectQuery}");
 
                     using (OdbcCommand selectCommand = new OdbcCommand(selectQuery, connection))
                     {
@@ -268,6 +304,7 @@ namespace NeuCrypto
                             while (reader.Read())
                             {
                                 bool bPerformUpdate = false;
+                                bool bFldsEmpty = true;
                                 row_count++;
 
                                 //Had to use the classic for loop to avoid the exception of collection been modified
@@ -275,6 +312,7 @@ namespace NeuCrypto
                                 {
                                     string key = encfieldNames.ElementAt(i).Key;
                                     object fieldValue = reader[key];
+                                    encfieldNames[key] = (fieldValue == DBNull.Value) ? "" : fieldValue.ToString();
 
                                     // Decrypt the field value if it is not null and it starts with the encrypted data header
                                     if (fieldValue != DBNull.Value && fieldValue.ToString().StartsWith(Encryptor.EncryptDataHeader))
@@ -283,10 +321,13 @@ namespace NeuCrypto
                                         string encryptedValue = encryptor.DecryptTextAES(fieldValue.ToString());
                                         encfieldNames[key] = encryptedValue;
                                     }
+
+                                    if (fieldValue != DBNull.Value && !string.IsNullOrEmpty(fieldValue.ToString()))
+                                        bFldsEmpty = false;
                                 }
 
                                 // If there is no fields that were encrypted, then continue
-                                if (!bPerformUpdate)
+                                if (!bPerformUpdate || bFldsEmpty)
                                     continue;
 
                                 rows_updated++;
@@ -315,25 +356,49 @@ namespace NeuCrypto
                                     updateCommand.ExecuteNonQuery();
                                 }*/
 
-                                if(!updateQueries.Contains(updateQuery))
-                                    updateQueries.Add(updateQuery);
+                                //if(!updateQueries.Contains(updateQuery))
+                                updateQueries.Add(updateQuery);
 
+                                if(rows_updated % 1000 == 0)
+                                    logger.LogMessage(Logger.LogLevel.Debug, $"BulkDecryptDBTable: {rows_updated} rows added.");
                             }
 
                             reader.Close();
 
-                            logger.LogMessage(Logger.LogLevel.Debug, $"BulkDecryptDBTable: {updateQueries.Count} update queries to be executed.");
+                            logger.LogMessage(Logger.LogLevel.Debug, $"BulkDecryptDBTable: {updateQueries.Count} in list.");
+                            List<string> distinctQueries = updateQueries.Distinct().ToList();
+                            logger.LogMessage(Logger.LogLevel.Debug, $"BulkDecryptDBTable: {distinctQueries.Count} distinct queries.");
 
-                            //Execute the update queries
-                            foreach (string query in updateQueries)
+                            using (OdbcCommand updateCommand = connection.CreateCommand())
                             {
-                                using (OdbcCommand updateCommand = new OdbcCommand(query, connection))
+                                // Set the batch update size
+                                int batchSize = 200;
+                                int currentBatchSize = 0;
+
+                                foreach (string query in distinctQueries)
                                 {
+                                    updateCommand.CommandText += query + "; ";
+                                    currentBatchSize++;
+
+                                    if (currentBatchSize >= batchSize)
+                                    {
+                                        logger.LogMessage(Logger.LogLevel.Debug, $"BulkDecryptDBTable: Executing batch of {batchSize} queries.");
+                                        updateCommand.ExecuteNonQuery();
+                                        updateCommand.CommandText = "";
+                                        currentBatchSize = 0;
+                                    }
+                                }
+
+                                // Execute any remaining batched updates
+                                if (!string.IsNullOrEmpty(updateCommand.CommandText))
+                                {
+                                    logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptDBTable: Executing batch of remaining {currentBatchSize} queries.");
                                     updateCommand.ExecuteNonQuery();
                                 }
                             }
 
-                            logger.LogMessage(Logger.LogLevel.Debug, $"BulkDecryptDBTable: {updateQueries.Count} update queries executed.");
+                            connection.Close();
+                            logger.LogMessage(Logger.LogLevel.Debug, $"BulkDecryptDBTable: {distinctQueries.Count} update queries executed.");
                         }
                     }
                 }
@@ -341,7 +406,8 @@ namespace NeuCrypto
                 {
                     // Handle any exceptions here
                     LastError = ex.Message;
-                    logger.LogMessage(Logger.LogLevel.Error, $"BulkDecryptAccessDBTable: {ex.Message} : UpdateQuery: {updateQuery}");
+                    logger.LogMessage(Logger.LogLevel.Error, $"BulkDecryptDBTable: {ex.Message} : UpdateQuery: {updateQuery}");
+                    connection.Close();
                     return -1;
                 }
 
@@ -379,13 +445,11 @@ namespace NeuCrypto
                     szRet = "'" + szFieldValue + "'";
                     break;
                 case "DateTime":
-                    szRet = "#" + szFieldValue + "#";
+                    szRet = "'" + szFieldValue + "'";
                     break;
             }
 
             return szRet;
         }
-
-
     }
 }

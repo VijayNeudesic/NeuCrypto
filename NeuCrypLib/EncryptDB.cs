@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace NeuCrypto
 {
-    internal class EncryptDB
+    public class EncryptDB
     {
         public string LastError { get; set; }
         protected Logger logger = new Logger();

@@ -7,7 +7,7 @@ using Serilog;
 
 namespace NeuCrypto
 {
-    internal class Logger
+    public class Logger
     {
         public enum LogLevel
         {

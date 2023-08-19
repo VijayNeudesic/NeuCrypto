@@ -19,9 +19,22 @@ namespace EncryptionTool
             InitializeComponent();
         }
 
+        public void ResetAllControls()
+        {
+            lblCfgFileName.Text = "";
+            dgToDoList.Rows.Clear();
+            txtSQLServer.Text = "";
+            txtSQLServer.Visible = false;
+            rdDBAccess.Checked = true;
+        }
+
         private void button1_Click(object sender, EventArgs e)
         {
-            CfgFileDialog.ShowDialog();
+            DialogResult dlgrslt = CfgFileDialog.ShowDialog();
+
+            if (dlgrslt != DialogResult.OK)
+                return;
+
             lblCfgFileName.Text = CfgFileDialog.FileName;   
 
             dgToDoList.Rows.Clear();
@@ -30,7 +43,10 @@ namespace EncryptionTool
             {
                 string szDBNameOrPath = "";
                 string szDBServer = "";
-                
+                txtSQLServer.Visible = false;
+                txtSQLServer.Text = "";
+                rdDBAccess.Checked = true;  
+
                 string[] szCfgTextArr = File.ReadAllLines(lblCfgFileName.Text);
                 foreach(string cfgText in szCfgTextArr)
                 {
@@ -41,6 +57,12 @@ namespace EncryptionTool
                     else if(cfgText.ToUpper().StartsWith("DBSERVER="))
                     {
                         szDBServer = cfgText.Substring("DBServer=".Length);
+                        if (szDBServer != "")
+                        {
+                            txtSQLServer.Text = szDBServer;
+                            txtSQLServer.Visible = true;
+                            rdDBSQL.Checked = true;
+                        }
                     }
                     //Other lines are in format TableName|Field1,Field2|WhereClauseField1,WhereClauseField1|Filter1,Filter2
                     else if(cfgText != "")
@@ -67,7 +89,7 @@ namespace EncryptionTool
                         cryptoProcess.InitAll(@".\", false);
                         cryptoProcess.BulkEncryptDBTable(szDBServer, szDBNameOrPath, szTableName, szFields, szWhereClauseFields, szFilters);*/
 
-                        dgToDoList.Rows.Add(szDBServer, szDBNameOrPath, szTableName, szFields, szWhereClauseFields, szFilters, "Not Started");
+                        dgToDoList.Rows.Add(szDBNameOrPath, szTableName, szFields, szWhereClauseFields, szFilters, "Not Started");
                     }
                 }
             }
@@ -76,21 +98,30 @@ namespace EncryptionTool
         private async Task BulkEncrypt()
         {
             CryptoProcess cryptoProcess = new CryptoProcess();
-            cryptoProcess.InitAll(@".\");
+            if(cryptoProcess.InitAll(@".\") < 0)
+            {
+                MessageBox.Show("Error initializing encryption process.  Error: " + cryptoProcess.LastError);
+                return;
+            }
 
             foreach (DataGridViewRow row in dgToDoList.Rows)
             {
+                if(row.Index == dgToDoList.Rows.Count - 1)
+                    continue;
+
                 if (row.Cells["Status"].Value.ToString() == "Not Started")
                 {
                     row.Cells["Status"].Value = "In Progress";
                     row.Cells["Status"].Style.BackColor = Color.Yellow;
 
-                    int rc = cryptoProcess.BulkEncryptDBTable(row.Cells["ServerName"].Value.ToString(),
+                    string filters = row.Cells["Filters"].Value == null ? "" : row.Cells["Filters"].Value.ToString();
+
+                    int rc = cryptoProcess.BulkEncryptDBTable(txtSQLServer.Text,
                                                      row.Cells["DBNameOrPath"].Value.ToString(),
                                                      row.Cells["TableName"].Value.ToString(),
                                                      row.Cells["Fields"].Value.ToString(),
                                                      row.Cells["WhereCls"].Value.ToString(),
-                                                     row.Cells["Filters"].Value.ToString());
+                                                     filters);
 
                     if (rc == 0)
                     {
@@ -110,27 +141,48 @@ namespace EncryptionTool
 
         private async Task BulkDecrypt(string szAccessCode)
         {
+            if(szAccessCode == "")
+            {
+                MessageBox.Show("Please enter an access code.");
+                return;
+            }
+
             CryptoProcess cryptoProcess = new CryptoProcess();
-            cryptoProcess.InitAll(@".\");
+            if (cryptoProcess.InitAll(@".\") < 0)
+            {
+                MessageBox.Show("Error initializing encryption process.  Error: " + cryptoProcess.LastError);
+                return;
+            }
 
             foreach (DataGridViewRow row in dgToDoList.Rows)
             {
+                if(row.Index == dgToDoList.Rows.Count - 1)
+                    continue;   
+
                 if (row.Cells["Status"].Value.ToString() == "Not Started")
                 {
                     row.Cells["Status"].Value = "In Progress";
                     row.Cells["Status"].Style.BackColor = Color.Yellow;
 
-                    int rc = cryptoProcess.BulkDecryptDBTable(row.Cells["ServerName"].Value.ToString(),
+                    string filters = row.Cells["Filters"].Value == null ? "" : row.Cells["Filters"].Value.ToString();
+
+                    int rc = cryptoProcess.BulkDecryptDBTable(txtSQLServer.Text,
                                                      row.Cells["DBNameOrPath"].Value.ToString(),
                                                      row.Cells["TableName"].Value.ToString(),
                                                      row.Cells["Fields"].Value.ToString(),
                                                      row.Cells["WhereCls"].Value.ToString(),
-                                                     row.Cells["Filters"].Value.ToString(), szAccessCode);
+                                                     filters, szAccessCode);
 
                     if (rc == 0)
                     {
                         row.Cells["Status"].Value = cryptoProcess.StatusMsg;
                         row.Cells["Status"].Style.BackColor = Color.Navy;
+                        row.Cells["Status"].Style.ForeColor = Color.White;
+                    }
+                    else if(rc == -2)
+                    {
+                        row.Cells["Status"].Value = cryptoProcess.LastError;
+                        row.Cells["Status"].Style.BackColor = Color.Red;
                         row.Cells["Status"].Style.ForeColor = Color.White;
                     }
                     else
@@ -143,8 +195,57 @@ namespace EncryptionTool
             }
         }
 
-        private void btnBulkDecryption_Click(object sender, EventArgs e)
+        //ValidateData method needs to check for SQL Server, and Access Code
+        //It should check the DataGrid for valid data in all the rows except for last row and then enable the Encrypt and Decrypt buttons
+        private bool ValidateData()
         {
+            if (rdDBSQL.Checked)
+            {
+                if (txtSQLServer.Text == "")
+                {
+                    MessageBox.Show("Please enter the SQL Server name.");
+                    return false;
+                }
+            }
+
+            foreach (DataGridViewRow row in dgToDoList.Rows)
+            {
+                if (row.Index == dgToDoList.Rows.Count - 1)
+                    continue;
+
+                if (row.Cells["DBNameOrPath"].Value.ToString() == "")
+                {
+                    MessageBox.Show("Please enter the Database name or path.");
+                    return false;
+                }
+
+                if (row.Cells["TableName"].Value.ToString() == "")
+                {
+                    MessageBox.Show("Please enter the Table name.");
+                    return false;
+                }
+
+                if (row.Cells["Fields"].Value.ToString() == "")
+                {
+                    MessageBox.Show("Please enter the Fields.");
+                    return false;
+                }
+
+                if (row.Cells["WhereCls"].Value.ToString() == "")
+                {
+                    MessageBox.Show("Please enter the uniquely identifiable fields.");
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private async void btnBulkDecryption_Click(object sender, EventArgs e)
+        {
+            if (!ValidateData())
+                return;
+
             if (txtAccCode.Text == "")
             {
                 MessageBox.Show("Please enter the Access code.");
@@ -155,43 +256,73 @@ namespace EncryptionTool
             txtAccCode.Text = "";
 
             ResetStatus();
-            btnBulkDecryption.Enabled = false;
-            btnBulkEncrypt.Enabled = false;
 
-            Task.Run(async () => await BulkDecrypt(szAccessCode));
+            SetControlsStatus(true);
 
-            btnBulkDecryption.Enabled = true;
-            btnBulkEncrypt.Enabled = true;
+            await Task.Run(async () => await BulkDecrypt(szAccessCode));
+
+            SetControlsStatus(false);
         }
         private async void btnBulkEncrypt_Click(object sender, EventArgs e)
         {
+            if(!ValidateData())
+                return;
+
             ResetStatus();
-            btnBulkEncrypt.Enabled = false;
-            btnBulkDecryption.Enabled = false;
+
+            SetControlsStatus(true);
 
             await Task.Run(async () => await BulkEncrypt());
 
-            btnBulkEncrypt.Enabled = true;
-            btnBulkDecryption.Enabled = true;
+            SetControlsStatus(false);
+        }
+
+        private void SetControlsStatus(bool Inprogress)
+        {
+            btnBulkEncrypt.Enabled = !Inprogress;
+            btnBulkDecryption.Enabled = !Inprogress;
+            btnResetAll.Enabled = !Inprogress;
+            button1.Enabled = !Inprogress;
+            rdDBAccess.Enabled = !Inprogress;
+            rdDBSQL.Enabled = !Inprogress;
+            txtAccCode.Enabled = !Inprogress;
+            txtSQLServer.Enabled = !Inprogress;
+            dgToDoList.ReadOnly = Inprogress;
+            dgToDoList.Columns["Status"].ReadOnly = true;
         }
 
         private void ResetStatus()
         {
-            /*foreach (DataGridViewRow row in dgToDoList.Rows)
+            foreach (DataGridViewRow row in dgToDoList.Rows)
             {
+                if(row.Index == dgToDoList.Rows.Count - 1)
+                    continue;
+
                 row.Cells["Status"].Value = "Not Started";
                 row.Cells["Status"].Style.BackColor = Color.White;
                 row.Cells["Status"].Style.ForeColor = Color.Black;
-            }*/
+            }
 
-            //Is there a way to update a cell value in all the rows without a loop?  With the help of LINQ, yes.
-            //Can I also set style in the same statement along with setting value in LINQ statement.
-            dgToDoList.Rows.Cast<DataGridViewRow>().ToList().ForEach(r =>
-                                                            {
-                                                                r.Cells["Status"].Value = "Not Started";
-                                                                r.Cells["Status"].Style.BackColor = Color.White;
-                                                                r.Cells["Status"].Style.ForeColor = Color.Black;
-                                                            });
+        }
+
+        private void rdDBSQL_CheckedChanged(object sender, EventArgs e)
+        {
+            if(rdDBSQL.Checked == true)
+                txtSQLServer.Visible = true;
+        }
+
+        private void rdDBAccess_CheckedChanged(object sender, EventArgs e)
+        {
+            if (rdDBAccess.Checked == true)
+            {
+                txtSQLServer.Text = "";
+                txtSQLServer.Visible = false;
+            }
+        }
+
+        private void btnResetAll_Click(object sender, EventArgs e)
+        {
+            ResetAllControls();
         }
     }
 }

@@ -9,7 +9,7 @@ using Microsoft.Win32;
 
 namespace NeuCrypto
 {
-    internal class Encryptor
+    public class Encryptor
     {
         public string LastError { get; set; }
         private RSAEncType rsaEncType = null;
@@ -74,7 +74,10 @@ namespace NeuCrypto
             int rc = rsaEncType.Init(szCertSubjName, true);
 
             if (rc < 0)
+            {
                 LastError = rsaEncType.LastError;
+                logger.LogMessage(Logger.LogLevel.Error, "InitRSA: RSAEncType.Init failed: " + LastError);
+            }
 
             return rc;
         }
