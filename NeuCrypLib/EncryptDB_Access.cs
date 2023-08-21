@@ -10,363 +10,39 @@ namespace NeuCrypto
 {
     public class EncryptDB_Access : EncryptDB
     {
-        public EncryptDB_Access(Logger _logger, Encryptor _encryptor, string DBPath) : base(_logger, _encryptor)
+        public EncryptDB_Access(Logger _logger, string DBPath) : base(_logger)
         {
             connString = $"Driver={{Microsoft Access Driver (*.mdb, *.accdb)}};Dbq={DBPath};";
         }
 
-        public override int BulkEncryptDBTable(string szTableName, string szFieldNames, string szWhereClauseFields, string szLstFilterOperators)
+        public override int UpdateDBTable(List<string> distinctQueries, OdbcConnection connection)
         {
-            logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptAccessDBTable: {connString}, {szTableName}, {szFieldNames}, {szWhereClauseFields}, {szLstFilterOperators}");
-
-            //Split field names into a dictonary where field name is the key and field type is the value
-            //format: id,name,dob
-            Dictionary<string, string> encfieldNames = szFieldNames.Split(',').ToDictionary(szField => szField, szField => "");
-
-            //Split row keys into a dictonary where field name is the key and field type is the value
-            //format:  Id,name,dob
-            Dictionary<string, Tuple<Type, string>> whereClauseFields = szWhereClauseFields.Split(',')
-                                                          .ToDictionary(szFieldParts => szFieldParts, szFieldParts => new Tuple<Type, string>(null, ""));
-
-
-            string updateQuery = "";
-            row_count = 0;
-            rows_updated = 0;
-
-            Dictionary<string, Tuple<Type, int>> ColumnTypeAndSize = new Dictionary<string, Tuple<Type, int>>();
-            List<string> updateQueries = new List<string>();    
-
-            // Create a new OleDbConnection using the connection string
-            using (OdbcConnection connection = new OdbcConnection(connString))
+            try
             {
-                try
+                int completed = 0;
+                foreach (string query in distinctQueries)
                 {
-                    // Open the database connection
-                    connection.Open();
-
-                    // Create a command to read the data
-                    string selectQuery = "SELECT * FROM " + szTableName;
-
-                    logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptAccessDBTable: {selectQuery}");
-
-                    using (OdbcCommand selectCommand = new OdbcCommand(selectQuery, connection))
+                    completed++;
+                    using (OdbcCommand updateCommand = new OdbcCommand(query, connection))
                     {
-                        /////////////////////////////////////////////////////////////////////
-                        //  Get the schema of the table to get the column types and sizes
-                        /////////////////////////////////////////////////////////////////////
-                        OdbcDataReader reader = selectCommand.ExecuteReader();
-                        DataTable schemaTable = reader.GetSchemaTable();
-                        logger.LogMessage(Logger.LogLevel.Debug, "Schema retrieved.");
-                        foreach (DataRow row in schemaTable.Rows)
-                            ColumnTypeAndSize.Add(row["ColumnName"].ToString().ToUpper(), Tuple.Create((Type)row["DataType"], (int)row["ColumnSize"]));
-
-                        logger.LogMessage(Logger.LogLevel.Debug, $"Column type size: {ColumnTypeAndSize.Count}.");
-
-                        // Check if the reader has rows
-                        if (reader.HasRows)
-                        {
-                            /////////////////////////////////////////////////////////////////////////////////////////////////
-                            //  Read through the record sets to see if the encrypted value is larger than the column size
-                            /////////////////////////////////////////////////////////////////////////////////////////////////
-                            while (reader.Read())
-                            {
-                                //Validate that the encrypted value is not larger than the column size
-                                foreach (var encfield in encfieldNames)
-                                {
-                                    string key = encfield.Key;
-                                    object fieldValue = reader[key];
-
-                                    if (fieldValue == null || fieldValue == DBNull.Value || fieldValue.ToString().StartsWith(Encryptor.EncryptDataHeader))
-                                        continue;
-
-                                    row_count++;
-
-                                    string encryptedValue = encryptor.EncryptTextAES(fieldValue.ToString());
-
-                                    var typeAndSize = ColumnTypeAndSize[key.ToUpper()];
-                                    if (encryptedValue.Length > typeAndSize.Item2)
-                                    {
-                                        LastError = $"BulkEncryptAccessDBTable: Encrypted value is larger than the column size. Column: {key}, Encrypted value Size: {encryptedValue.Length}, Column size: {typeAndSize.Item2}";
-                                        logger.LogMessage(Logger.LogLevel.Error, LastError);
-                                        reader.Close();
-                                        connection.Close();
-                                        return -1;
-                                    }
-                                }
-                            }
-
-                            reader.Close();
-
-                            if (row_count > 0)
-                            {
-                                /////////////////////////////////////////////////////////////////////////////////////////////////
-                                // If there are rows that need to be encrypted, then create the update query
-                                /////////////////////////////////////////////////////////////////////////////////////////////////
-
-                                //restart the reader and the row count
-                                row_count = 0;
-                                rows_updated = 0;
-
-                                logger.LogMessage(Logger.LogLevel.Debug, "All column sizes are good.");
-                                reader = selectCommand.ExecuteReader();
-
-                                logger.LogMessage(Logger.LogLevel.Debug, $"Real encryption starts now :).");
-
-                                // Loop through the rows
-                                while (reader.Read())
-                                {
-                                    bool bPerformUpdate = false;
-                                    row_count++;
-
-                                    //Had to use the classic for loop to avoid the exception of collection been modified
-                                    for (int i = 0; i < encfieldNames.Count; i++)
-                                    {
-                                        string key = encfieldNames.ElementAt(i).Key;
-                                        object fieldValue = reader[key];
-
-                                        // Encrypt the field value if it is not null
-                                        if (fieldValue != DBNull.Value && !fieldValue.ToString().StartsWith(Encryptor.EncryptDataHeader))
-                                        {
-                                            bPerformUpdate = true;
-                                            string encryptedValue = encryptor.EncryptTextAES(fieldValue.ToString());
-                                            encfieldNames[key] = encryptedValue;
-                                        }
-                                    }
-
-                                    // If there is no fields that were encrypted, then continue
-                                    if (!bPerformUpdate)
-                                        continue;
-
-                                    rows_updated++;
-
-                                    // Loop through the where clause fields
-                                    for (int i = 0; i < whereClauseFields.Count; i++)
-                                    {
-                                        string key = whereClauseFields.ElementAt(i).Key;
-                                        // Get the value of the field
-                                        object fieldValue = reader[key];
-                                        var TypeAndSize = ColumnTypeAndSize[key.ToUpper()];
-                                        whereClauseFields[key] = new Tuple<Type, string>(TypeAndSize.Item1, fieldValue.ToString());
-                                    }
-
-                                    // Update the row with the encrypted values
-                                    updateQuery = "UPDATE " + szTableName + " SET ";
-                                    foreach (KeyValuePair<string, string> fldToEnc in encfieldNames)
-                                    {
-                                        var TypeAndSize = ColumnTypeAndSize[fldToEnc.Key.ToUpper()];
-                                        updateQuery += fldToEnc.Key + "=" + FormatField(TypeAndSize.Item1, fldToEnc.Value) + ",";
-                                    }
-                                    updateQuery = updateQuery.TrimEnd(',');
-                                    updateQuery += " WHERE " + ConstructWhereClause(whereClauseFields, szLstFilterOperators);
-                                    /*using (OdbcCommand updateCommand = new OdbcCommand(updateQuery, connection))
-                                    {
-                                        updateCommand.ExecuteNonQuery();
-                                    }*/
-
-                                    //if(!updateQueries.Contains(updateQuery))
-                                    updateQueries.Add(updateQuery);
-
-                                    if (rows_updated % 1000 == 0)
-                                        logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptDBTable: {rows_updated} rows added. SQL: {updateQuery}");
-
-                                }
-
-                                reader.Close();
-
-                                logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptDBTable: {updateQueries.Count} in list.");
-                                List<string> distinctQueries = updateQueries.Distinct().ToList();
-                                logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptDBTable: {distinctQueries.Count} distinct queries.");
-
-                                //Execute the update queries
-                                foreach (string query in distinctQueries)
-                                {
-                                    using (OdbcCommand updateCommand = new OdbcCommand(query, connection))
-                                    {
-                                        updateCommand.ExecuteNonQuery();
-                                    }
-                                }
-
-                                logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptAccessDBTable: {updateQueries.Count} update queries executed.");
-                            }
-                            else
-                            {
-                                logger.LogMessage(Logger.LogLevel.Debug, "No rows to encrypt.");
-                            }
-
-                            connection.Close();
-                        }
+                        if(completed % 200 == 0)
+                            logger.LogMessage(Logger.LogLevel.Debug, $"UpdateDBTable: Updated {completed}/{distinctQueries.Count} queries.");
+                        updateCommand.ExecuteNonQuery();
                     }
                 }
-                catch (Exception ex)
-                {
-                    connection.Close();
-                    // Handle any exceptions here
-                    LastError = ex.Message;
-                    logger.LogMessage(Logger.LogLevel.Error, $"BulkEncryptAccessDBTable: {ex.Message} : UpdateQuery: {updateQuery}");
-                    return -1;
-                }
-
+                logger.LogMessage(Logger.LogLevel.Debug, $"UpdateDBTable: Updated {completed}/{distinctQueries.Count} queries.");
+            }
+            catch (Exception ex)
+            {
+                LastError = ex.Message;
+                logger.LogMessage(Logger.LogLevel.Error, $"UpdateDBTable: {ex.Message}");
+                return -1;
             }
 
             return 0;
         }
 
-        public override int BulkDecryptDBTable(string szTableName, string szFieldNames, string szWhereClauseFields, string szLstFilterOperators)
-        {
-            logger.LogMessage(Logger.LogLevel.Debug, $"BulkDecryptAccessDBTable: {connString}, {szTableName}, {szFieldNames}, {szWhereClauseFields}, {szLstFilterOperators}");
-
-            //Split field names into a dictonary where field name is the key and field type is the value
-            //format: id,name,dob
-            Dictionary<string, string> encfieldNames = szFieldNames.Split(',').ToDictionary(szField => szField, szField => "");
-
-            //Split row keys into a dictonary where field name is the key and field type is the value
-            //format:  Id,name,dob
-            Dictionary<string, Tuple<Type, string>> whereClauseFields = szWhereClauseFields.Split(',')
-                                                          .ToDictionary(szFieldParts => szFieldParts, szFieldParts => new Tuple<Type, string>(null, ""));
-
-
-            string updateQuery = "";
-            row_count = 0;
-            rows_updated = 0;
-
-            Dictionary<string, Tuple<Type, int>> ColumnTypeAndSize = new Dictionary<string, Tuple<Type, int>>();
-            List<string> updateQueries = new List<string>();
-
-            // Create a new OleDbConnection using the connection string
-            using (OdbcConnection connection = new OdbcConnection(connString))
-            {
-                try
-                {
-                    // Open the database connection
-                    connection.Open();
-
-                    // Create a command to read the data
-                    string selectQuery = "SELECT * FROM " + szTableName;
-
-                    logger.LogMessage(Logger.LogLevel.Debug, $"BulkDecryptAccessDBTable: {selectQuery}");
-
-                    using (OdbcCommand selectCommand = new OdbcCommand(selectQuery, connection))
-                    {
-                        /////////////////////////////////////////////////////////////////////
-                        //  Get the schema of the table to get the column types and sizes
-                        /////////////////////////////////////////////////////////////////////
-                        OdbcDataReader reader = selectCommand.ExecuteReader();
-                        DataTable schemaTable = reader.GetSchemaTable();
-                        logger.LogMessage(Logger.LogLevel.Debug, "Schema retrieved.");
-                        foreach (DataRow row in schemaTable.Rows)
-                            ColumnTypeAndSize.Add(row["ColumnName"].ToString().ToUpper(), Tuple.Create((Type)row["DataType"], (int)row["ColumnSize"]));
-
-                        logger.LogMessage(Logger.LogLevel.Debug, $"Column type size: {ColumnTypeAndSize.Count}.");
-
-                        // Check if the reader has rows
-                        if (reader.HasRows)
-                        {
-                            /////////////////////////////////////////////////////////////////////////////////////////////////
-                            // If there are rows that need to be encrypted, then create the update query
-                            /////////////////////////////////////////////////////////////////////////////////////////////////
-
-                            //restart the reader and the row count
-                            row_count = 0;
-                            rows_updated = 0;
-
-                            reader.Close();
-                            reader = selectCommand.ExecuteReader();
-
-                            logger.LogMessage(Logger.LogLevel.Debug, $"Real decryption starts now :).");
-
-                            // Loop through the rows
-                            while (reader.Read())
-                            {
-                                bool bPerformUpdate = false;
-                                row_count++;
-
-                                //Had to use the classic for loop to avoid the exception of collection been modified
-                                for (int i = 0; i < encfieldNames.Count; i++)
-                                {
-                                    string key = encfieldNames.ElementAt(i).Key;
-                                    object fieldValue = reader[key];
-
-                                    // Decrypt the field value if it is not null and it starts with the encrypted data header
-                                    if (fieldValue != DBNull.Value && fieldValue.ToString().StartsWith(Encryptor.EncryptDataHeader))
-                                    {
-                                        bPerformUpdate = true;
-                                        string encryptedValue = encryptor.DecryptTextAES(fieldValue.ToString());
-                                        encfieldNames[key] = encryptedValue;
-                                    }
-                                }
-
-                                // If there is no fields that were encrypted, then continue
-                                if (!bPerformUpdate)
-                                    continue;
-
-                                rows_updated++;
-
-                                // Loop through the where clause fields
-                                for (int i = 0; i < whereClauseFields.Count; i++)
-                                {
-                                    string key = whereClauseFields.ElementAt(i).Key;
-                                    // Get the value of the field
-                                    object fieldValue = reader[key];
-                                    var TypeAndSize = ColumnTypeAndSize[key.ToUpper()];
-                                    whereClauseFields[key] = new Tuple<Type, string>(TypeAndSize.Item1, fieldValue.ToString());
-                                }
-
-                                // Update the row with the encrypted values
-                                updateQuery = "UPDATE " + szTableName + " SET ";
-                                foreach (KeyValuePair<string, string> fldToEnc in encfieldNames)
-                                {
-                                    var TypeAndSize = ColumnTypeAndSize[fldToEnc.Key.ToUpper()];
-                                    updateQuery += fldToEnc.Key + "=" + FormatField(TypeAndSize.Item1, fldToEnc.Value) + ",";
-                                }
-                                updateQuery = updateQuery.TrimEnd(',');
-                                updateQuery += " WHERE " + ConstructWhereClause(whereClauseFields, szLstFilterOperators);
-                                /*using (OdbcCommand updateCommand = new OdbcCommand(updateQuery, connection))
-                                {
-                                    updateCommand.ExecuteNonQuery();
-                                }*/
-
-                                //if(!updateQueries.Contains(updateQuery))
-                                updateQueries.Add(updateQuery);
-
-                                if (rows_updated % 1000 == 0)
-                                    logger.LogMessage(Logger.LogLevel.Debug, $"BulkDecryptDBTable: {rows_updated} rows added.");
-
-                            }
-
-                            reader.Close();
-
-                            logger.LogMessage(Logger.LogLevel.Debug, $"BulkDecryptDBTable: {updateQueries.Count} in list.");
-                            List<string> distinctQueries = updateQueries.Distinct().ToList();
-                            logger.LogMessage(Logger.LogLevel.Debug, $"BulkDecryptDBTable: {distinctQueries.Count} distinct queries.");
-
-                            //Execute the update queries
-                            foreach (string query in distinctQueries)
-                            {
-                                using (OdbcCommand updateCommand = new OdbcCommand(query, connection))
-                                {
-                                    updateCommand.ExecuteNonQuery();
-                                }
-                            }
-
-                            connection.Close();
-                            logger.LogMessage(Logger.LogLevel.Debug, $"BulkDecryptDBTable: {updateQueries.Count} update queries executed.");
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    connection.Close();
-                    // Handle any exceptions here
-                    LastError = ex.Message;
-                    logger.LogMessage(Logger.LogLevel.Error, $"BulkDecryptAccessDBTable: {ex.Message} : UpdateQuery: {updateQuery}");
-                    return -1;
-                }
-
-            }
-
-            return 0;
-        }
-
+ 
         public override string ConstructWhereClause(Dictionary<string, Tuple<Type, string>> whereClauseFields, string szLstFilterOperators)
         {
             string szRet = "";

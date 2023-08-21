@@ -100,9 +100,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\NeuCrypto\NeuCrypto.csproj">
-      <Project>{d4049724-be7c-46fc-8290-352d72bd92af}</Project>
-      <Name>NeuCrypto</Name>
+    <ProjectReference Include="..\NeuCrypLib\NeuCrypLib.csproj">
+      <Project>{a6860b0d-aa4e-4605-852c-09c728507516}</Project>
+      <Name>NeuCrypLib</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

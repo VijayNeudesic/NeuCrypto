@@ -30,6 +30,9 @@ namespace NeuCrypto
                 // Take the first 4 bytes of the hash and convert them to an integer
                 int dayCode = BitConverter.ToInt32(hashBytes, 0) % 10000;
 
+                if(dayCode < 0)
+                    dayCode = dayCode * -1;
+
                 // Format the code as a 4-digit string
                 code = dayCode.ToString("D4");
             }

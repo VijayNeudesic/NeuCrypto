@@ -97,10 +97,11 @@ namespace EncryptionTool
 
         private async Task BulkEncrypt()
         {
-            CryptoProcess cryptoProcess = new CryptoProcess();
-            if(cryptoProcess.InitAll(@".\") < 0)
+            Encryptor encryptor = new Encryptor();
+
+            if(encryptor.Init(@".\") < 0)
             {
-                MessageBox.Show("Error initializing encryption process.  Error: " + cryptoProcess.LastError);
+                MessageBox.Show("Error initializing encryption process.  Error: " + encryptor.LastError);
                 return;
             }
 
@@ -116,7 +117,7 @@ namespace EncryptionTool
 
                     string filters = row.Cells["Filters"].Value == null ? "" : row.Cells["Filters"].Value.ToString();
 
-                    int rc = cryptoProcess.BulkEncryptDBTable(txtSQLServer.Text,
+                    int rc = encryptor.BulkEncryptDBTable(txtSQLServer.Text,
                                                      row.Cells["DBNameOrPath"].Value.ToString(),
                                                      row.Cells["TableName"].Value.ToString(),
                                                      row.Cells["Fields"].Value.ToString(),
@@ -125,13 +126,13 @@ namespace EncryptionTool
 
                     if (rc == 0)
                     {
-                        row.Cells["Status"].Value = cryptoProcess.StatusMsg;
+                        row.Cells["Status"].Value = encryptor.StatusMsg;
                         row.Cells["Status"].Style.BackColor = Color.Navy;
                         row.Cells["Status"].Style.ForeColor = Color.White;
                     }
                     else
                     {
-                        row.Cells["Status"].Value = cryptoProcess.LastError;
+                        row.Cells["Status"].Value = encryptor.LastError;
                         row.Cells["Status"].Style.BackColor = Color.Red;
                         row.Cells["Status"].Style.ForeColor = Color.White;
                     }
@@ -147,10 +148,10 @@ namespace EncryptionTool
                 return;
             }
 
-            CryptoProcess cryptoProcess = new CryptoProcess();
-            if (cryptoProcess.InitAll(@".\") < 0)
+            Encryptor encryptor = new Encryptor();
+            if (encryptor.Init(@".\") < 0)
             {
-                MessageBox.Show("Error initializing encryption process.  Error: " + cryptoProcess.LastError);
+                MessageBox.Show("Error initializing encryption process.  Error: " + encryptor.LastError);
                 return;
             }
 
@@ -166,7 +167,7 @@ namespace EncryptionTool
 
                     string filters = row.Cells["Filters"].Value == null ? "" : row.Cells["Filters"].Value.ToString();
 
-                    int rc = cryptoProcess.BulkDecryptDBTable(txtSQLServer.Text,
+                    int rc = encryptor.BulkDecryptDBTable(txtSQLServer.Text,
                                                      row.Cells["DBNameOrPath"].Value.ToString(),
                                                      row.Cells["TableName"].Value.ToString(),
                                                      row.Cells["Fields"].Value.ToString(),
@@ -175,19 +176,19 @@ namespace EncryptionTool
 
                     if (rc == 0)
                     {
-                        row.Cells["Status"].Value = cryptoProcess.StatusMsg;
+                        row.Cells["Status"].Value = encryptor.StatusMsg;
                         row.Cells["Status"].Style.BackColor = Color.Navy;
                         row.Cells["Status"].Style.ForeColor = Color.White;
                     }
                     else if(rc == -2)
                     {
-                        row.Cells["Status"].Value = cryptoProcess.LastError;
+                        row.Cells["Status"].Value = encryptor.LastError;
                         row.Cells["Status"].Style.BackColor = Color.Red;
                         row.Cells["Status"].Style.ForeColor = Color.White;
                     }
                     else
                     {
-                        row.Cells["Status"].Value = cryptoProcess.LastError;
+                        row.Cells["Status"].Value = encryptor.LastError;
                         row.Cells["Status"].Style.BackColor = Color.Red;
                         row.Cells["Status"].Style.ForeColor = Color.White;
                     }
