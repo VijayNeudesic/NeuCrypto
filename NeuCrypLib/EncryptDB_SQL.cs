@@ -23,7 +23,6 @@ namespace NeuCrypto
                 using (OdbcCommand updateCommand = connection.CreateCommand())
                 {
                     // Set the batch update size
-                    int batchSize = 200;
                     int completed = 0;
                     int currentBatchSize = 0;
 
@@ -32,7 +31,7 @@ namespace NeuCrypto
                         updateCommand.CommandText += query + "; ";
                         currentBatchSize++;
 
-                        if (currentBatchSize >= batchSize)
+                        if (currentBatchSize >= BatchSize)
                         {
                             completed += currentBatchSize;
                             logger.LogMessage(Logger.LogLevel.Debug, $"UpdateDBTable: Updated {completed}/{distinctQueries.Count} queries.");
@@ -69,7 +68,7 @@ namespace NeuCrypto
                 if (szRet != "")
                     szRet += " " + lstFilterOperators[i++] + " ";
 
-                szRet += fldToEnc.Key + "=" + FormatField(fldToEnc.Value.Item1, fldToEnc.Value.Item2);
+                szRet += " [" + fldToEnc.Key + "] =" + FormatField(fldToEnc.Value.Item1, fldToEnc.Value.Item2);
             }
 
             return szRet;
@@ -81,6 +80,7 @@ namespace NeuCrypto
             switch (fldType.Name)
             {
                 case "Int32":
+                case "Double":
                     szRet = szFieldValue;
                     break;
                 case "String":
@@ -89,6 +89,10 @@ namespace NeuCrypto
                     break;
                 case "DateTime":
                     szRet = "'" + szFieldValue + "'";
+                    break;
+                default:  
+                    szRet = szFieldValue;
+                    logger.LogMessage(Logger.LogLevel.Error, $"FormatField: Unsupported field type {fldType.Name}");
                     break;
             }
 

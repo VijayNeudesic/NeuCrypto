@@ -20,6 +20,7 @@ namespace NeuCrypto
 
         public int row_count = 0;
         public int rows_updated = 0;
+        public int BatchSize = 0;
 
         public EncryptDB(Logger logger)
         {
@@ -56,7 +57,7 @@ namespace NeuCrypto
                     connection.Open();
 
                     // Create a command to read the data
-                    string selectQuery = "SELECT * FROM " + szTableName;
+                    string selectQuery = "SELECT * FROM [" + szTableName + "]";
 
                     logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptDBTable: {selectQuery}");
 
@@ -182,11 +183,14 @@ namespace NeuCrypto
                                     }
 
                                     // Update the row with the encrypted values
-                                    updateQuery = "UPDATE " + szTableName + " SET ";
+                                    updateQuery = "UPDATE [" + szTableName + "] SET ";
                                     foreach (KeyValuePair<string, string> fldToEnc in encfieldNames)
                                     {
+                                        if(string.IsNullOrEmpty(fldToEnc.Value))
+                                            continue;
+
                                         var TypeAndSize = ColumnTypeAndSize[fldToEnc.Key.ToUpper()];
-                                        updateQuery += fldToEnc.Key + "=" + FormatField(TypeAndSize.Item1, fldToEnc.Value) + ",";
+                                        updateQuery += " [" + fldToEnc.Key + "] =" + FormatField(TypeAndSize.Item1, fldToEnc.Value) + ",";
                                     }
                                     updateQuery = updateQuery.TrimEnd(',');
                                     updateQuery += " WHERE " + ConstructWhereClause(whereClauseFields, szLstFilterOperators);
@@ -204,6 +208,8 @@ namespace NeuCrypto
                                 }
 
                                 reader.Close();
+
+                                logger.LogMessage(Logger.LogLevel.Debug, "Last Update query: " + updateQuery);
 
                                 logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptDBTable: {updateQueries.Count} in list.");
                                 List<string> distinctQueries = updateQueries.Distinct().ToList();
@@ -271,7 +277,7 @@ namespace NeuCrypto
                     connection.Open();
 
                     // Create a command to read the data
-                    string selectQuery = "SELECT * FROM " + szTableName;
+                    string selectQuery = "SELECT * FROM [" + szTableName + "]";
 
                     logger.LogMessage(Logger.LogLevel.Debug, $"BulkDecryptDBTable: {selectQuery}");
 
@@ -347,11 +353,14 @@ namespace NeuCrypto
                                 }
 
                                 // Update the row with the encrypted values
-                                updateQuery = "UPDATE " + szTableName + " SET ";
+                                updateQuery = "UPDATE [" + szTableName + "] SET ";
                                 foreach (KeyValuePair<string, string> fldToEnc in encfieldNames)
                                 {
+                                    if (string.IsNullOrEmpty(fldToEnc.Value))
+                                        continue;
+
                                     var TypeAndSize = ColumnTypeAndSize[fldToEnc.Key.ToUpper()];
-                                    updateQuery += fldToEnc.Key + "=" + FormatField(TypeAndSize.Item1, fldToEnc.Value) + ",";
+                                    updateQuery += " [" + fldToEnc.Key + "] =" + FormatField(TypeAndSize.Item1, fldToEnc.Value) + ",";
                                 }
                                 updateQuery = updateQuery.TrimEnd(',');
                                 updateQuery += " WHERE " + ConstructWhereClause(whereClauseFields, szLstFilterOperators);

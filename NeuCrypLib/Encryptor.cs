@@ -14,6 +14,8 @@ namespace NeuCrypto
         public string LastError { get; set; }
         public string StatusMsg { get; set; }
 
+        public int BatchSize = 200;
+
         public const string EncryptDataHeader = "_NDP_";
         public Logger logger = new Logger();
 
@@ -161,6 +163,7 @@ namespace NeuCrypto
                 encryptDB = new EncryptDB_Access(logger, szDBNameOrPath);
 
             encryptDB.encryptor = this;
+            encryptDB.BatchSize = BatchSize;
 
             if (encryptDB.BulkEncryptDBTable(szTableName, szFieldNames, szWhereClauseFields, szLstFilterOperators) < 0)
             {
@@ -197,6 +200,7 @@ namespace NeuCrypto
                 encryptDB = new EncryptDB_Access(logger, szDBNameOrPath);
 
             encryptDB.encryptor = this;
+            encryptDB.BatchSize = BatchSize;
 
             if (encryptDB.BulkDecryptDBTable(szTableName, szFieldNames, szWhereClauseFields, szLstFilterOperators) < 0)
             {

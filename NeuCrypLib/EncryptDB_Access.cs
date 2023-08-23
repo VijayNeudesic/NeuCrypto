@@ -25,7 +25,7 @@ namespace NeuCrypto
                     completed++;
                     using (OdbcCommand updateCommand = new OdbcCommand(query, connection))
                     {
-                        if(completed % 200 == 0)
+                        if(completed % BatchSize == 0)
                             logger.LogMessage(Logger.LogLevel.Debug, $"UpdateDBTable: Updated {completed}/{distinctQueries.Count} queries.");
                         updateCommand.ExecuteNonQuery();
                     }
@@ -53,7 +53,7 @@ namespace NeuCrypto
                 if (szRet != "")
                     szRet += " " + lstFilterOperators[i++] + " ";
 
-                szRet += fldToEnc.Key + "=" + FormatField(fldToEnc.Value.Item1, fldToEnc.Value.Item2);
+                szRet += " [" + fldToEnc.Key + "] =" + FormatField(fldToEnc.Value.Item1, fldToEnc.Value.Item2);
             }
 
             return szRet;

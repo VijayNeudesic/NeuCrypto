@@ -14,6 +14,7 @@ namespace EncryptionTool
 {
     public partial class Main : Form
     {
+        int BatchSize = 0;
         public Main()
         {
             InitializeComponent();
@@ -64,6 +65,18 @@ namespace EncryptionTool
                             rdDBSQL.Checked = true;
                         }
                     }
+                    else if(cfgText.ToUpper().StartsWith("BATCHSIZE="))
+                    {
+                        string szBatchSize = cfgText.Substring("BatchSize=".Length);
+                        int nBatchSize = 0;
+                        if(int.TryParse(szBatchSize, out nBatchSize))
+                        {
+                            if(nBatchSize > 0)
+                            {
+                                BatchSize = nBatchSize;
+                            }
+                        }
+                    }
                     //Other lines are in format TableName|Field1,Field2|WhereClauseField1,WhereClauseField1|Filter1,Filter2
                     else if(cfgText != "")
                     {
@@ -98,6 +111,7 @@ namespace EncryptionTool
         private async Task BulkEncrypt()
         {
             Encryptor encryptor = new Encryptor();
+            encryptor.BatchSize = BatchSize;
 
             if(encryptor.Init(@".\") < 0)
             {
@@ -149,6 +163,8 @@ namespace EncryptionTool
             }
 
             Encryptor encryptor = new Encryptor();
+            encryptor.BatchSize = BatchSize;
+
             if (encryptor.Init(@".\") < 0)
             {
                 MessageBox.Show("Error initializing encryption process.  Error: " + encryptor.LastError);
