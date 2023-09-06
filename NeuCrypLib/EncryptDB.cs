@@ -7,6 +7,9 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Runtime.Remoting.Messaging;
+using System.Data.OleDb;
+using System.Data.Common;
 
 namespace NeuCrypto
 {
@@ -21,6 +24,7 @@ namespace NeuCrypto
         public int row_count = 0;
         public int rows_updated = 0;
         public int BatchSize = 0;
+        public bool useDistinct = false;
 
         public EncryptDB(Logger logger)
         {
@@ -58,6 +62,22 @@ namespace NeuCrypto
 
                     // Create a command to read the data
                     string selectQuery = "SELECT * FROM [" + szTableName + "]";
+
+                    if(useDistinct)
+                    {
+                        selectQuery = "SELECT DISTINCT ";
+                        foreach (var encfield in encfieldNames)
+                        {
+                            selectQuery += $"[{encfield.Key}],";
+                        }
+                        selectQuery = selectQuery.TrimEnd(',');
+                        foreach (var whereClauseField in whereClauseFields)
+                        {
+                            if(!encfieldNames.ContainsKey(whereClauseField.Key))
+                                selectQuery += $",[{whereClauseField.Key}]";
+                        }
+                        selectQuery += $" FROM [{szTableName}]";
+                    }
 
                     logger.LogMessage(Logger.LogLevel.Debug, $"BulkEncryptDBTable: {selectQuery}");
 
@@ -230,12 +250,15 @@ namespace NeuCrypto
                             }
 
                             connection.Close();
+                            connection.Dispose();
+                            reader.Dispose();
                         }
                     }
                 }
                 catch (Exception ex)
                 {
                     connection.Close();
+                    connection.Dispose();
                     // Handle any exceptions here
                     LastError = ex.Message;
                     logger.LogMessage(Logger.LogLevel.Error, $"BulkEncryptDBTable: {ex.Message} : UpdateQuery: {updateQuery}");
@@ -245,6 +268,114 @@ namespace NeuCrypto
             }
 
             return 0;
+        }
+
+        public string ExecuteNameContainsSearch(string connStr, string selectQuery, string nameContainsFilter, 
+                                                string colToReturn, int colType)
+        {
+            logger.LogMessage(Logger.LogLevel.Debug, $"ExecuteNameContainsSearch, SQL: {selectQuery}, filter: {nameContainsFilter}");
+
+            DbConnection conn = null;
+            DbCommand cmd = null;
+            DbDataReader reader = null;
+
+            if (connStr.ToUpper().StartsWith("PROVIDER"))
+            {
+                conn = new OleDbConnection(connStr);
+                cmd = new OleDbCommand(selectQuery, (OleDbConnection)conn);
+            }
+            else
+            {
+                conn = new OdbcConnection(connStr);
+                cmd = new OdbcCommand(selectQuery, (OdbcConnection)conn);
+            }
+            
+
+
+            string szResult = "";
+            DataTable dt = new DataTable();
+
+            try
+            {
+                conn.Open();
+                reader = cmd.ExecuteReader();
+
+                // Create columns in DataTable based on the schema of the reader
+                for (int i = 0; i < reader.FieldCount; i++)
+                    dt.Columns.Add(reader.GetName(i), reader.GetFieldType(i));
+
+                // Loop through the rows
+                while (reader.Read())
+                {
+                    DataRow row = dt.NewRow();
+                    for (int i = 0; i < reader.FieldCount; i++)
+                        row[i] = reader[i];
+
+                    dt.Rows.Add(row);
+                }
+
+                reader.Close();
+                conn.Close();
+                cmd = null;
+                conn = null;
+                reader = null;
+
+                if (dt.Rows.Count == 0)
+                {
+                    logger.LogMessage(Logger.LogLevel.Info, $"ExecuteNameContainsSearch: there no records in the table. SQL: {selectQuery}");
+                    return "";
+                }
+
+                logger.LogMessage(Logger.LogLevel.Debug, $"ExecuteNameContainsSearch: {dt.Rows.Count} rows returned.");
+
+                //Loop through the rows and cols to first decrypt information in each column of the row
+                foreach (DataRow row in dt.Rows)
+                {
+                    foreach (DataColumn col in dt.Columns)
+                    {
+                        if (row[col] != null && row[col] != DBNull.Value && row[col].ToString().StartsWith("_NDP_"))
+                        {
+                            string szDecrypted = encryptor.DecryptTextAES(row[col].ToString());
+                            row[col] = szDecrypted;
+                        }
+                    }
+                }
+
+                logger.LogMessage(Logger.LogLevel.Debug, $"ExecuteNameContainsSearch: {dt.Rows.Count} rows decrypted.");
+
+                DataRow[] filteredRows = dt.Select(nameContainsFilter);
+
+                logger.LogMessage(Logger.LogLevel.Debug, $"ExecuteNameContainsSearch: {filteredRows.Length} rows returned after filter.");
+
+                if (filteredRows.Length == 0)
+                {
+                    logger.LogMessage(Logger.LogLevel.Info, $"ExecuteNameContainsSearch: No records returned. Filter: {nameContainsFilter}");
+                    return "";
+                }
+
+                string addQuotes = "";
+
+                if (colType == 2)
+                    addQuotes = "'";
+
+                //return all the values in the column ColsToReturn in a comma separated string format
+                foreach (DataRow row in filteredRows)
+                {
+                    if (szResult != "")
+                        szResult += ",";
+
+                    if (row[colToReturn] != null && row[colToReturn] != DBNull.Value)
+                        szResult += addQuotes + row[colToReturn].ToString() + addQuotes;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                logger.LogMessage(Logger.LogLevel.Error, $"ExecuteNameContainsSearch: {ex.Message}");
+                return "";
+            }
+
+            return szResult;
         }
 
         public int BulkDecryptDBTable(string szTableName, string szFieldNames, string szWhereClauseFields, string szLstFilterOperators)
@@ -278,6 +409,22 @@ namespace NeuCrypto
 
                     // Create a command to read the data
                     string selectQuery = "SELECT * FROM [" + szTableName + "]";
+
+                    if (useDistinct)
+                    {
+                        selectQuery = "SELECT DISTINCT ";
+                        foreach (var encfield in encfieldNames)
+                        {
+                            selectQuery += $"[{encfield.Key}],";
+                        }
+                        selectQuery = selectQuery.TrimEnd(',');
+                        foreach (var whereClauseField in whereClauseFields)
+                        {
+                            if (!encfieldNames.ContainsKey(whereClauseField.Key))
+                                selectQuery += $",[{whereClauseField.Key}]";
+                        }
+                        selectQuery += $" FROM [{szTableName}]";
+                    }
 
                     logger.LogMessage(Logger.LogLevel.Debug, $"BulkDecryptDBTable: {selectQuery}");
 
@@ -385,6 +532,9 @@ namespace NeuCrypto
                             UpdateDBTable(distinctQueries, connection);
 
                             connection.Close();
+                            connection.Dispose();
+                            reader.Dispose();
+
                             logger.LogMessage(Logger.LogLevel.Debug, $"BulkDecryptDBTable: {distinctQueries.Count} update queries executed.");
                         }
                     }
@@ -395,6 +545,7 @@ namespace NeuCrypto
                     LastError = ex.Message;
                     logger.LogMessage(Logger.LogLevel.Error, $"BulkDecryptDBTable: {ex.Message} : UpdateQuery: {updateQuery}");
                     connection.Close();
+                    connection.Dispose();
                     return -1;
                 }
 

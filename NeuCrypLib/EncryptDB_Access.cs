@@ -25,7 +25,7 @@ namespace NeuCrypto
                     completed++;
                     using (OdbcCommand updateCommand = new OdbcCommand(query, connection))
                     {
-                        if(completed % BatchSize == 0)
+                        if(BatchSize <= 0 || completed % BatchSize == 0)
                             logger.LogMessage(Logger.LogLevel.Debug, $"UpdateDBTable: Updated {completed}/{distinctQueries.Count} queries.");
                         updateCommand.ExecuteNonQuery();
                     }

@@ -14,7 +14,7 @@ namespace EncryptionTool
 {
     public partial class Main : Form
     {
-        int BatchSize = 0;
+        int BatchSize = 200;
         public Main()
         {
             InitializeComponent();
@@ -47,6 +47,7 @@ namespace EncryptionTool
                 txtSQLServer.Visible = false;
                 txtSQLServer.Text = "";
                 rdDBAccess.Checked = true;  
+                chkUseDistinct.Checked = false;
 
                 string[] szCfgTextArr = File.ReadAllLines(lblCfgFileName.Text);
                 foreach(string cfgText in szCfgTextArr)
@@ -75,6 +76,18 @@ namespace EncryptionTool
                             {
                                 BatchSize = nBatchSize;
                             }
+                        }
+                    }
+                    else if (cfgText.ToUpper().StartsWith("USEDISTINCT="))
+                    {
+                        string szUseDistinct = cfgText.Substring("USEDISTINCT=".Length);
+                        if(szUseDistinct.ToUpper() == "TRUE" || szUseDistinct.ToUpper() == "YES")
+                        {
+                            chkUseDistinct.Checked = true;
+                        }
+                        else
+                        {
+                            chkUseDistinct.Checked = false;
                         }
                     }
                     //Other lines are in format TableName|Field1,Field2|WhereClauseField1,WhereClauseField1|Filter1,Filter2
@@ -112,6 +125,7 @@ namespace EncryptionTool
         {
             Encryptor encryptor = new Encryptor();
             encryptor.BatchSize = BatchSize;
+            encryptor.UseDistinct = chkUseDistinct.Checked;
 
             if(encryptor.Init(@".\") < 0)
             {
@@ -164,6 +178,7 @@ namespace EncryptionTool
 
             Encryptor encryptor = new Encryptor();
             encryptor.BatchSize = BatchSize;
+            encryptor.UseDistinct = chkUseDistinct.Checked;
 
             if (encryptor.Init(@".\") < 0)
             {

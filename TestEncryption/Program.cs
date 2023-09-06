@@ -1,6 +1,7 @@
 ﻿using NeuCrypto;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,6 +17,11 @@ namespace TestEncryption
             CryptoProcess cryptoProcess = new CryptoProcess();
 
             cryptoProcess.InitAll(".\\");
+
+            string ODBCconnstring = @"Driver={Microsoft Access Driver (*.mdb, *.accdb)};Dbq=F:\dev\dop\test\DOP_MASTER_BE.mdb;";
+            //string szList = cryptoProcess.ExecuteNameContainsSearch("PROVIDER=SQLOLEDB;Server=VBANSAL01\\SQLEXPRESS;Database=TestBulkLoad;UID=sa;PWD=N3wy0rk;", "select id,employee_type from tl_payroll", "employee_type like 'barr%'", "ID", 2);
+            string szList = cryptoProcess.ExecuteNameContainsSearch(ODBCconnstring, "select personid,lastname,firstname from persons", "firstname like 'ba%'", "PersonID", 2);
+
             string sztext = cryptoProcess.EncryptString("Hello, World!");
 
             //cryptoProcess.BulkEncryptDBTable("VBANSAL01\\SQLEXPRESS", "TestBulkLoad", "BulkRecords", "column2", "column2", "");

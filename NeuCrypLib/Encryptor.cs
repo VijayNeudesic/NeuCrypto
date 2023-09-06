@@ -9,12 +9,13 @@ using Microsoft.Win32;
 
 namespace NeuCrypto
 {
-    public class Encryptor
+    public class Encryptor: IDisposable
     {
         public string LastError { get; set; }
         public string StatusMsg { get; set; }
 
         public int BatchSize = 200;
+        public bool UseDistinct = false;
 
         public const string EncryptDataHeader = "_NDP_";
         public Logger logger = new Logger();
@@ -28,6 +29,14 @@ namespace NeuCrypto
         {
             rsaEncType = new RSAEncType();
             aesEncType = new AesEncType();
+        }
+
+        public void Dispose()
+        {
+            rsaEncType = null;
+            aesEncType = null;
+            logger = null;
+            encryptDB = null;
         }
 
         public int Init(string logPath)
@@ -153,6 +162,14 @@ namespace NeuCrypto
             return DecryptTextAES(szBase64EncData).Replace("'", "''");
         }
 
+        public string ExecuteNameContainsSearch(string connStr, string selectQuery, string nameContainsFilter,
+                                                string colToReturn, int colType)
+        {
+            encryptDB = new EncryptDB(logger);
+            encryptDB.encryptor = this;
+            return encryptDB.ExecuteNameContainsSearch(connStr, selectQuery, nameContainsFilter, colToReturn, colType);
+        }
+
         public int BulkEncryptDBTable(string szSQLServer, string szDBNameOrPath, string szTableName, string szFieldNames, string szWhereClauseFields, string szLstFilterOperators)
         {
             DateTime start = DateTime.Now;
@@ -164,6 +181,7 @@ namespace NeuCrypto
 
             encryptDB.encryptor = this;
             encryptDB.BatchSize = BatchSize;
+            encryptDB.useDistinct = UseDistinct;
 
             if (encryptDB.BulkEncryptDBTable(szTableName, szFieldNames, szWhereClauseFields, szLstFilterOperators) < 0)
             {
@@ -201,6 +219,7 @@ namespace NeuCrypto
 
             encryptDB.encryptor = this;
             encryptDB.BatchSize = BatchSize;
+            encryptDB.useDistinct = UseDistinct;
 
             if (encryptDB.BulkDecryptDBTable(szTableName, szFieldNames, szWhereClauseFields, szLstFilterOperators) < 0)
             {

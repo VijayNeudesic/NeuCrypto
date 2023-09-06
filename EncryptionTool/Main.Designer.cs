@@ -32,6 +32,12 @@
             this.CfgFileDialog = new System.Windows.Forms.OpenFileDialog();
             this.lblCfgFileName = new System.Windows.Forms.Label();
             this.dgToDoList = new System.Windows.Forms.DataGridView();
+            this.DBNameOrPath = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.TableName = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Fields = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.WhereCls = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Filters = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Status = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.btnBulkEncrypt = new System.Windows.Forms.Button();
             this.btnBulkDecryption = new System.Windows.Forms.Button();
             this.label1 = new System.Windows.Forms.Label();
@@ -40,12 +46,7 @@
             this.rdDBSQL = new System.Windows.Forms.RadioButton();
             this.txtSQLServer = new System.Windows.Forms.TextBox();
             this.btnResetAll = new System.Windows.Forms.Button();
-            this.DBNameOrPath = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.TableName = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.Fields = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.WhereCls = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.Filters = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.Status = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.chkUseDistinct = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.dgToDoList)).BeginInit();
             this.SuspendLayout();
             // 
@@ -102,6 +103,49 @@
             this.dgToDoList.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.CellSelect;
             this.dgToDoList.Size = new System.Drawing.Size(1165, 226);
             this.dgToDoList.TabIndex = 2;
+            // 
+            // DBNameOrPath
+            // 
+            this.DBNameOrPath.HeaderText = "Database";
+            this.DBNameOrPath.MinimumWidth = 6;
+            this.DBNameOrPath.Name = "DBNameOrPath";
+            this.DBNameOrPath.Width = 150;
+            // 
+            // TableName
+            // 
+            this.TableName.HeaderText = "Table";
+            this.TableName.MinimumWidth = 6;
+            this.TableName.Name = "TableName";
+            this.TableName.Width = 150;
+            // 
+            // Fields
+            // 
+            this.Fields.HeaderText = "Fields To Encrypt";
+            this.Fields.MinimumWidth = 6;
+            this.Fields.Name = "Fields";
+            this.Fields.Width = 200;
+            // 
+            // WhereCls
+            // 
+            this.WhereCls.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.WhereCls.HeaderText = "Uniquely Identifiable Fields";
+            this.WhereCls.MinimumWidth = 6;
+            this.WhereCls.Name = "WhereCls";
+            // 
+            // Filters
+            // 
+            this.Filters.HeaderText = "Operators";
+            this.Filters.MinimumWidth = 6;
+            this.Filters.Name = "Filters";
+            this.Filters.Width = 200;
+            // 
+            // Status
+            // 
+            this.Status.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
+            this.Status.HeaderText = "Status";
+            this.Status.MinimumWidth = 6;
+            this.Status.Name = "Status";
+            this.Status.ReadOnly = true;
             // 
             // btnBulkEncrypt
             // 
@@ -189,54 +233,23 @@
             this.btnResetAll.UseVisualStyleBackColor = true;
             this.btnResetAll.Click += new System.EventHandler(this.btnResetAll_Click);
             // 
-            // DBNameOrPath
+            // chkUseDistinct
             // 
-            this.DBNameOrPath.HeaderText = "Database";
-            this.DBNameOrPath.MinimumWidth = 6;
-            this.DBNameOrPath.Name = "DBNameOrPath";
-            this.DBNameOrPath.Width = 150;
-            // 
-            // TableName
-            // 
-            this.TableName.HeaderText = "Table";
-            this.TableName.MinimumWidth = 6;
-            this.TableName.Name = "TableName";
-            this.TableName.Width = 150;
-            // 
-            // Fields
-            // 
-            this.Fields.HeaderText = "Fields To Encrypt";
-            this.Fields.MinimumWidth = 6;
-            this.Fields.Name = "Fields";
-            this.Fields.Width = 200;
-            // 
-            // WhereCls
-            // 
-            this.WhereCls.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            this.WhereCls.HeaderText = "Uniquely Identifiable Fields";
-            this.WhereCls.MinimumWidth = 6;
-            this.WhereCls.Name = "WhereCls";
-            // 
-            // Filters
-            // 
-            this.Filters.HeaderText = "Operators";
-            this.Filters.MinimumWidth = 6;
-            this.Filters.Name = "Filters";
-            this.Filters.Width = 200;
-            // 
-            // Status
-            // 
-            this.Status.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.Fill;
-            this.Status.HeaderText = "Status";
-            this.Status.MinimumWidth = 6;
-            this.Status.Name = "Status";
-            this.Status.ReadOnly = true;
+            this.chkUseDistinct.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.chkUseDistinct.AutoSize = true;
+            this.chkUseDistinct.Location = new System.Drawing.Point(15, 336);
+            this.chkUseDistinct.Name = "chkUseDistinct";
+            this.chkUseDistinct.Size = new System.Drawing.Size(100, 20);
+            this.chkUseDistinct.TabIndex = 11;
+            this.chkUseDistinct.Text = "Use Distinct";
+            this.chkUseDistinct.UseVisualStyleBackColor = true;
             // 
             // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1195, 375);
+            this.Controls.Add(this.chkUseDistinct);
             this.Controls.Add(this.btnResetAll);
             this.Controls.Add(this.txtSQLServer);
             this.Controls.Add(this.rdDBSQL);
@@ -277,6 +290,7 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn WhereCls;
         private System.Windows.Forms.DataGridViewTextBoxColumn Filters;
         private System.Windows.Forms.DataGridViewTextBoxColumn Status;
+        private System.Windows.Forms.CheckBox chkUseDistinct;
     }
 }
 

@@ -58,5 +58,16 @@ namespace NeuCrypto
             return encryptor.BulkDecryptDBTable(szSQLServer, szDBNameOrPath, szTableName, szFieldNames, szWhereClauseFields, szLstFilterOperators, szAccessCode);
         }
 
+        public string ExecuteNameContainsSearch(string connStr, string selectQuery, string nameContainsFilter,
+                                                string colToReturn, int colType)
+        {
+            return encryptor.ExecuteNameContainsSearch(connStr, selectQuery, nameContainsFilter, colToReturn, colType);
+        }
+
+        public void CloseAll()
+        {
+            encryptor.Dispose();
+            logger = null;
+        }
     }
 }
