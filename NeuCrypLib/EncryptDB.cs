@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Runtime.Remoting.Messaging;
 using System.Data.OleDb;
 using System.Data.Common;
+using System.Collections.Concurrent;
 
 namespace NeuCrypto
 {
@@ -278,6 +279,7 @@ namespace NeuCrypto
             DbConnection conn = null;
             DbCommand cmd = null;
             DbDataReader reader = null;
+            int TableSize = 1000;
 
             if (connStr.ToUpper().StartsWith("PROVIDER"))
             {
@@ -300,9 +302,13 @@ namespace NeuCrypto
                 conn.Open();
                 reader = cmd.ExecuteReader();
 
+                DataTable schemaTable = new DataTable();
                 // Create columns in DataTable based on the schema of the reader
                 for (int i = 0; i < reader.FieldCount; i++)
-                    dt.Columns.Add(reader.GetName(i), reader.GetFieldType(i));
+                    schemaTable.Columns.Add(reader.GetName(i), reader.GetFieldType(i));
+
+                dt = schemaTable.Clone();
+                List<DataTable> tblList = new List<DataTable>();
 
                 // Loop through the rows
                 while (reader.Read())
@@ -312,7 +318,21 @@ namespace NeuCrypto
                         row[i] = reader[i];
 
                     dt.Rows.Add(row);
+
+                    if(dt.Rows.Count >= TableSize)
+                    {
+                        tblList.Add(dt);
+                        dt = new DataTable();
+                        dt = schemaTable.Clone();
+                    }
                 }
+
+
+                // Add the last table to the list
+                if (dt.Rows.Count > 0)
+                    tblList.Add(dt);
+
+                dt.Dispose();
 
                 reader.Close();
                 conn.Close();
@@ -320,16 +340,15 @@ namespace NeuCrypto
                 conn = null;
                 reader = null;
 
-                if (dt.Rows.Count == 0)
+                if (tblList.Count == 0)
                 {
                     logger.LogMessage(Logger.LogLevel.Info, $"ExecuteNameContainsSearch: there no records in the table. SQL: {selectQuery}");
                     return "";
                 }
 
-                logger.LogMessage(Logger.LogLevel.Debug, $"ExecuteNameContainsSearch: {dt.Rows.Count} rows returned.");
 
                 //Loop through the rows and cols to first decrypt information in each column of the row
-                foreach (DataRow row in dt.Rows)
+                /*foreach (DataRow row in dt.Rows)
                 {
                     foreach (DataColumn col in dt.Columns)
                     {
@@ -339,11 +358,36 @@ namespace NeuCrypto
                             row[col] = szDecrypted;
                         }
                     }
+                }*/
+
+                logger.LogMessage(Logger.LogLevel.Debug, $"ExecuteNameContainsSearch: {tblList.Count} threads, processing {TableSize} rows each.");
+
+                // Create tasks to process smaller DataTables in parallel
+                Task[] tasks = new Task[tblList.Count];
+
+                for (int i = 0; i < tblList.Count; i++)
+                {
+                    DataTable smallerDt = tblList[i];
+
+                    tasks[i] = Task.Factory.StartNew(() =>
+                    {
+                        ProcessDataTable(smallerDt, encryptor);
+                    });
                 }
 
-                logger.LogMessage(Logger.LogLevel.Debug, $"ExecuteNameContainsSearch: {dt.Rows.Count} rows decrypted.");
+                // Wait for all tasks to complete
+                Task.WaitAll(tasks);
 
-                DataRow[] filteredRows = dt.Select(nameContainsFilter);
+                DataTable dataTable = schemaTable.Clone();
+
+                foreach (DataTable tbl in tblList)
+                {
+                    dataTable.Merge(tbl);
+                }
+
+                logger.LogMessage(Logger.LogLevel.Debug, $"ExecuteNameContainsSearch: {dataTable.Rows.Count} rows decrypted.");
+
+                DataRow[] filteredRows = dataTable.Select(nameContainsFilter);
 
                 logger.LogMessage(Logger.LogLevel.Debug, $"ExecuteNameContainsSearch: {filteredRows.Length} rows returned after filter.");
 
@@ -377,6 +421,44 @@ namespace NeuCrypto
 
             return szResult;
         }
+
+        private List<DataTable> DivideDataTable(DataTable originalDataTable, int batchSize)
+        {
+            List<DataTable> smallerDataTables = new List<DataTable>();
+
+            for (int i = 0; i < originalDataTable.Rows.Count; i += batchSize)
+            {
+                int end = Math.Min(i + batchSize, originalDataTable.Rows.Count);
+                DataTable smallerDt = originalDataTable.Clone(); // Clone the schema
+
+                for (int j = i; j < end; j++)
+                {
+                    DataRow row = originalDataTable.Rows[j];
+                    smallerDt.ImportRow(row);
+                }
+
+                smallerDataTables.Add(smallerDt);
+            }
+
+            return smallerDataTables;
+        }
+
+        // Process a DataTable by decrypting rows
+        static void ProcessDataTable(DataTable dt, Encryptor encryptor)
+        {
+            foreach (DataRow row in dt.Rows)
+            {
+                foreach (DataColumn col in dt.Columns)
+                {
+                    if (row[col] != null && row[col] != DBNull.Value && row[col].ToString().StartsWith("_NDP_"))
+                    {
+                        string szDecrypted = encryptor.DecryptTextAES(row[col].ToString());
+                        row[col] = szDecrypted;
+                    }
+                }
+            }
+        }
+
 
         public int BulkDecryptDBTable(string szTableName, string szFieldNames, string szWhereClauseFields, string szLstFilterOperators)
         {

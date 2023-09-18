@@ -37,6 +37,8 @@ namespace NeuCrypto
 
             logger = encryptor.logger;
             logger.LogMessage(Logger.LogLevel.Debug, "InitAll: Success");
+            //Log DLL version
+            logger.LogMessage(Logger.LogLevel.Debug, "InitAll: NeuCrypto.dll version: " + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
 
             return 0;
         }
