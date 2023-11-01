@@ -24,8 +24,15 @@ namespace NeuCrypto
         {
         }
 
-        public void InitLogs(string path=@".")
+        public void InitLogs(string path=@".", ILogger serilogger = null)
         { 
+            if(serilogger != null)
+            {
+                Log.Logger = serilogger;
+                bInitialized = true;
+                return;
+            }
+
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .WriteTo.Console()

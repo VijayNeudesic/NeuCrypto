@@ -279,7 +279,7 @@ namespace NeuCrypto
             DbConnection conn = null;
             DbCommand cmd = null;
             DbDataReader reader = null;
-            int TableSize = 1000;
+            int TableSize = 200;
 
             if (connStr.ToUpper().StartsWith("PROVIDER"))
             {

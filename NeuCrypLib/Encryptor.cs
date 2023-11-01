@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Win32;
+using Serilog;
 
 namespace NeuCrypto
 {
@@ -39,9 +40,9 @@ namespace NeuCrypto
             encryptDB = null;
         }
 
-        public int Init(string logPath)
+        public int Init(string logPath, ILogger serilogger = null)
         {
-            logger.InitLogs(logPath);
+            logger.InitLogs(logPath, serilogger);
 
             RegistryKey key1 = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Neudesic\\Neucrypto\\", false);
 
@@ -53,7 +54,7 @@ namespace NeuCrypto
 
             string certname = key1.GetValue("CertName").ToString();
 
-            logger.LogMessage(Logger.LogLevel.Debug, "Init: CertName: " + certname);
+            logger.LogMessage(Logger.LogLevel.Info, "Init: CertName: " + certname);
 
             string value1 = key1.GetValue("Value1").ToString();
 
