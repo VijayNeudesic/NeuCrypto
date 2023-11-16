@@ -20,6 +20,7 @@ namespace NeuCrypto
 
         public const string EncryptDataHeader = "_NDP_";
         public Logger logger = new Logger();
+        public ILogger _ilogger;
 
         private RSAEncType rsaEncType = null;
         private AesEncType aesEncType = null;
@@ -27,6 +28,17 @@ namespace NeuCrypto
         public EncryptDB encryptDB = null;
 
         public Encryptor()
+        {
+            Initialize();
+        }
+
+        public Encryptor(ILogger serilogger)
+        {
+            Initialize();
+            _ilogger = serilogger;
+        }
+
+        private void Initialize()
         {
             rsaEncType = new RSAEncType();
             aesEncType = new AesEncType();
@@ -40,9 +52,9 @@ namespace NeuCrypto
             encryptDB = null;
         }
 
-        public int Init(string logPath, ILogger serilogger = null)
+        public int Init(string logPath)
         {
-            logger.InitLogs(logPath, serilogger);
+            logger.InitLogs(logPath, _ilogger);
 
             RegistryKey key1 = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Neudesic\\Neucrypto\\", false);
 
